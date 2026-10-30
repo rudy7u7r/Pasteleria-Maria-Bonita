@@ -1,0 +1,52 @@
+{% extends "pasteleria/base.html" %}
+
+{% block title %}Carrito de Compras - Pastelería María Bonita{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="fw-bold mb-4" style="color: var(--texto-titulos);">🛒 Tu Carrito de Compras</h2>
+
+    {% if productos_carrito %}
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Producto</th>
+                        <th>Precio Unitario</th>
+                        <th>Cantidad</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in productos_carrito %}
+                        <tr>
+                            <td>
+                                {% if item.producto.img %}
+                                    <img src="{{ item.producto.img.url }}" alt="{{ item.producto.nombre }}" style="width: 50px; height: 50px; object-fit: cover;" class="rounded me-2">
+                                {% endif %}
+                                {{ item.producto.nombre }}
+                            </td>
+                            <td>${{ item.producto.precio_final }}</td>
+                            <td>{{ item.cantidad }}</td>
+                            <td>${{ item.subtotal }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4 p-3 bg-light rounded">
+            <h3 class="mb-0">Total a Pagar: <span style="color: #e5989b;">${{ total_carrito }}</span></h3>
+            <form action="{% url 'procesar_compra' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-custom btn-lg text-white" style="background-color: #e5989b; border: none;">Confirmar Compra</button>
+            </form>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <p class="text-muted fs-5">Tu carrito está vacío.</p>
+            <a href="{% url 'catalogo' %}" class="btn btn-outline-secondary mt-2">Ir al Catálogo</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

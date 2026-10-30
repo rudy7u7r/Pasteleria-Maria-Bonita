@@ -1,0 +1,69 @@
+{% extends 'pasteleria/base.html' %}
+
+{% block content %}
+<style>
+  .card-custom { background-color: var(--tarjetas-contenedores); }
+</style>
+
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card card-custom p-4 shadow-sm">
+        <h2 class="mb-4 text-center">✨ Diseña tu Torta Personalizada ✨</h2>
+        <form method="POST" action="">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label font-weight-bold">Tipo de Bizcocho:</label>
+            <select name="bizcocho" class="form-select" required>
+              <option value="">Selecciona una opción</option>
+              <option value="Vainilla">Vainilla Tradicional</option>
+              <option value="Chocolate">Chocolate Suave</option>
+              <option value="Red Velvet">Red Velvet</option>
+              <option value="Nuez">Nuez / Almendras</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Relleno Principal:</label>
+            <input type="text" name="relleno" class="form-control" placeholder="Ej: Manjar, Frutilla, Crema Pastelera" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Cobertura / Decoración:</label>
+            <input type="text" name="cobertura" class="form-control" placeholder="Ej: Chantilly, Ganache de Chocolate, Fondant" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Temática o Notas Especiales:</label>
+            <textarea name="notas" class="form-control" rows="3" placeholder="Detalla temáticas de cumpleaños, colores o dedicatorias..."></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Fecha de Entrega Requerida:</label>
+              <input type="date" name="fecha_entrega" class="form-control" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Hora Estimada:</label>
+              <input type="time" name="hora_entrega" class="form-control" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Precio Estimado ($):</label>
+            <input type="number" id="precio_estimado" name="precio_estimado" class="form-control" value="25000" oninput="calcularAbono()">
+          </div>
+          <div class="abono-box mb-4 text-center">
+            <span>Monto de Abono Obligatorio (25%): </span>
+            <span id="monto_abono" class="text-success">$6.250</span>
+          </div>
+          <button type="submit" class="btn btn-custom w-100 py-2">Enviar Solicitud y Pagar Abono</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function calcularAbono() {
+    const precio = parseFloat(document.getElementById('precio_estimado').value) || 0;
+    const abono = precio * 0.25;
+    document.getElementById('monto_abono').innerText = '$' + abono.toLocaleString('es-CL');
+  }
+</script>
+{% endblock %}

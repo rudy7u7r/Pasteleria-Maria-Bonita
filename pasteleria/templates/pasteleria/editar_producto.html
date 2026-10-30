@@ -1,0 +1,47 @@
+{% extends "pasteleria/base.html" %}
+
+{% block title %}Editar Producto{% endblock %}
+
+{% block content %}
+<div class="card card-custom shadow-sm p-4 mx-auto" style="max-width: 600px; background-color: var(--tarjetas-contenedores); color: var(--texto-titulos);">
+    <h3 class="mb-4">Editar Producto: {{ producto.nombre }}</h3>
+    <!-- Agregamos enctype="multipart/form-data" para permitir envío de archivos -->
+    <form method="POST" action="" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Nombre del Producto</label>
+            <input type="text" name="nombre" class="form-control" value="{{ producto.nombre }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Descripción</label>
+            <textarea name="descripcion" class="form-control" rows="2" required>{{ producto.descripcion }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Precio ($)</label>
+            <input type="number" name="precio_final" class="form-control" value="{{ producto.precio_final }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Stock Actual</label>
+            <input type="number" name="stock" class="form-control" max="5" value="{{ producto.stock }}" required>
+        </div>
+        
+        <!-- Nuevo campo para gestionar la imagen -->
+        <div class="mb-3">
+            <label class="form-label">Imagen del Producto</label>
+            {% if producto.img %}
+                <div class="mb-2">
+                    <small class="text-muted">Imagen actual:</small><br>
+                    <img src="{{ producto.img.url }}" alt="{{ producto.nombre }}" class="img-thumbnail mt-1" style="max-height: 100px;">
+                </div>
+            {% endif %}
+            <input type="file" name="img" class="form-control" accept="image/*">
+            <div class="form-text text-muted">Sube una nueva imagen solo si deseas reemplazar la actual.</div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'gestion_productos' %}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-custom" style="background-color: #e5989b; color: white; border: none;">Actualizar Producto</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

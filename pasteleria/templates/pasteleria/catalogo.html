@@ -1,0 +1,75 @@
+{% extends "pasteleria/base.html" %}
+
+{% block title %}Catálogo - Pastelería María Bonita{% endblock %}
+
+{% block content %}
+<section class="hero-banner" aria-labelledby="hero-title">
+    <div class="hero-content">
+        <span class="hero-eyebrow">Hecho con cariño, recién horneado</span>
+        <h1 class="hero-title" id="hero-title">Un pedacito de felicidad</h1>
+        <p class="hero-description">Tortas artesanales para celebrar tus momentos más dulces.</p>
+        <a class="btn btn-custom btn-lg" href="#productos">Descubrir sabores</a>
+    </div>
+</section>
+
+<section id="productos" aria-labelledby="catalog-title">
+    <div class="text-center">
+        <h2 class="catalog-section-title" id="catalog-title">Nuestros favoritos</h2>
+        <p class="catalog-intro">Preparados artesanalmente con ingredientes seleccionados.</p>
+    </div>
+
+    <div class="row g-4">
+        {% for producto in productos %}
+        <div class="col-sm-6 col-lg-4">
+            <article class="card card-custom product-card shadow-sm h-100">
+                <!-- Imagen clickeable -->
+                <a href="{% url 'detalle_producto' producto.id %}">
+                    {% if producto.img %}
+                        <img src="{{ producto.img.url }}" class="card-img-top" alt="{{ producto.nombre }}" style="object-fit: cover; height: 180px; border-top-left-radius: var(--border-radius); border-top-right-radius: var(--border-radius);">
+                    {% else %}
+                        <div class="product-art" role="img" aria-label="Ilustración">🍰</div>
+                    {% endif %}
+                </a>
+                
+                <div class="card-body d-flex flex-column">
+                    <!-- Toda la zona central (Título y Descripción) ahora es clickeable -->
+                    <a href="{% url 'detalle_producto' producto.id %}" class="text-decoration-none d-flex flex-column flex-grow-1" style="color: inherit;">
+                        <h3 class="card-title">{{ producto.nombre }}</h3>
+                        <p class="card-text flex-grow-1">{{ producto.descripcion }}</p>
+                    </a>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3 mt-3">
+                        <span class="price">${{ producto.precio_final }}</span>
+                        
+                        {% if producto.stock > 0 %}
+                            <span class="badge badge-stock"><span class="stock-count">{{ producto.stock }}</span> unidades</span>
+                        {% else %}
+                            <span class="badge bg-danger text-white">Agotada</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Botones de acción divididos -->
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'detalle_producto' producto.id %}" class="btn btn-outline-secondary w-50">Ver detalles</a>
+                        
+                        {% if producto.stock > 0 %}
+                            <form action="{% url 'comprar_producto' producto.id %}" method="POST" class="m-0 w-50">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-custom w-100" style="background-color: #e5989b; color: white; border: none;">Comprar</button>
+                            </form>
+                        {% else %}
+                            <button class="btn btn-secondary w-50" type="button" disabled>Sin stock</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center mt-5">
+            <p class="text-muted fs-5">En este momento no hay productos registrados en nuestro catálogo.</p>
+            <p class="text-muted">¡Vuelve pronto para ver nuestras novedades!</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

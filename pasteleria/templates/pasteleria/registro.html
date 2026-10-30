@@ -1,0 +1,39 @@
+{% extends 'pasteleria/base.html' %}
+
+{% block title %}Crear Usuario - Pastelería María Bonita{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-5">
+    <div class="col-md-5">
+        <div class="card card-custom p-4 shadow-sm">
+            <h3 class="text-center mb-4" style="color: var(--texto-titulos);">Crear Cuenta</h3>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Nombre de Usuario</label>
+                    <input type="text" name="username" class="form-control" required placeholder="Ej: jose_reyes">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Correo Electrónico</label>
+                    <input type="email" name="email" class="form-control" required placeholder="correo@ejemplo.com">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" name="password1" class="form-control" required placeholder="Crea tu contraseña">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Confirmar Contraseña</label>
+                    <input type="password" name="password2" class="form-control" required placeholder="Repite la contraseña">
+                </div>
+                <button type="submit" class="btn btn-custom w-100 mt-2">Registrarse</button>
+            </form>
+
+            <div class="text-center mt-3">
+                <p class="mb-0">¿Ya tienes cuenta?</p>
+                <a href="{% url 'login' %}" style="color: var(--texto-titulos); font-weight: 600;">Iniciar sesión aquí</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

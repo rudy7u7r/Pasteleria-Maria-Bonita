@@ -1,0 +1,60 @@
+{% extends 'pasteleria/base.html' %}
+
+{% block content %}
+<style>
+  .table-custom thead { background-color: var(--tarjetas-contenedores); }
+</style>
+
+<div class="container my-5">
+  <h2 class="mb-4">👨‍🍳 Panel de Control - Producción y Pedidos</h2>
+  <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="pills-stock-tab" data-bs-toggle="pill" data-bs-target="#pills-stock" type="button" role="tab">Ventas de Stock</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="pills-personalizados-tab" data-bs-toggle="pill" data-bs-target="#pills-personalizados" type="button" role="tab">Pedidos Personalizados</button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="pills-tabContent">
+    <div class="tab-pane fade show active" id="pills-stock" role="tabpanel">
+      <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover table-custom align-middle mb-0">
+          <thead>
+            <tr><th># Orden</th><th>Producto</th><th>Cantidad</th><th>Total</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>#1001</td><td>Torta de Piña Tradicional</td><td>1 unidad</td><td>$12.000</td>
+              <td><span class="badge badge-estado">Listo para Entrega</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="tab-pane fade" id="pills-personalizados" role="tabpanel">
+      <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover table-custom align-middle mb-0">
+          <thead>
+            <tr>
+              <th># Solicitud</th><th>Detalles (Bizcocho/Relleno)</th><th>Fecha Requerida</th>
+              <th>Abono (25%)</th><th>Estado Actual</th><th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>#P-201</td><td>Bizcocho Vainilla / Relleno Manjar / Temática Cumpleaños</td>
+              <td>28/10/2026 - 16:00 h</td><td><strong class="text-success">$6.250 (Pagado)</strong></td>
+              <td><span class="badge badge-estado">Pendiente de Coordinación</span></td>
+              <td>
+                <button class="btn btn-sm btn-outline-success">Aceptar</button>
+                <button class="btn btn-sm btn-outline-danger">Rechazar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "pasteleria/base.html" %}
+
+{% block title %}Mis Boletas - Pastelería María Bonita{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="fw-bold mb-4" style="color: var(--texto-titulos);">📄 Historial de Mis Boletas</h2>
+
+    {% if boletas %}
+        <div class="row g-4">
+            {% for boleta in boletas %}
+                <div class="col-md-6">
+                    <div class="card shadow-sm p-3">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold" style="color: #e5989b;">Boleta #{{ boleta.id }}</h5>
+                            <p class="text-muted small mb-2">Fecha: {{ boleta.fecha|date:"d/m/Y H:i" }}</p>
+                            <hr>
+                            <ul class="list-unstyled">
+                                {% for item in boleta.items.all %}
+                                    <li class="d-flex justify-content-between py-1">
+                                        <span>{{ item.cantidad }}x {{ item.producto_nombre }}</span>
+                                        <span class="text-muted">${{ item.precio_unitario }} c/u</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Total Pagado:</span>
+                                <span style="color: #e5989b;">${{ boleta.total }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <p class="text-muted fs-5">Aún no has realizado ninguna compra.</p>
+            <a href="{% url 'catalogo' %}" class="btn btn-outline-secondary mt-2">Ver Catálogo</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

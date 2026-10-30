@@ -1,0 +1,111 @@
+{% extends "pasteleria/base.html" %}
+
+{% block title %}Gestión de Productos y Stock - Panel Interno{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2 style="color: var(--texto-titulos);">Gestión Integral de Productos y Stock</h2>
+            <p class="text-muted mb-0">Módulo exclusivo de administración para CRUD y reposición (Tope máximo de 5 unidades por producto).</p>
+        </div>
+        <button class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#modalProducto">+ Crear Nuevo Producto</button>
+    </div>
+</div>
+
+<div class="card card-custom shadow-sm p-3">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0" style="color: var(--texto-titulos);">
+            <thead>
+                <tr>
+                    <th>ID</th><th>Imagen</th><th>Nombre</th><th>Precio</th>
+                    <th>Stock Actual (Máx 5)</th><th>Acciones (CRUD / Reposición)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in productos %}
+                <tr>
+                    <td>{{ producto.id }}</td>
+                    <td>
+                        {% if producto.img %}
+                            <img src="{{ producto.img.url }}" alt="{{ producto.nombre }}" class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                        {% else %}
+                            <span class="text-muted">Sin imagen</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ producto.nombre }}</td>
+                    <td>${{ producto.precio_final }}</td>
+                    <td>
+                        {% if producto.stock > 0 %}
+                            <span class="badge badge-stock">{{ producto.stock }} unidades</span>
+                        {% else %}
+                            <span class="badge bg-danger text-white">0 unidades</span>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Columna de acciones corregida (se quitó el <td> duplicado) -->
+                    <td class="d-flex align-items-center">
+                        <!-- Botón Renovar Stock -->
+                        <form action="{% url 'renovar_stock' producto.id %}" method="POST" class="me-1 mb-0">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-dark">Renovar Stock (+)</button>
+                        </form>
+                        
+                        <!-- Botón Editar -->
+                        <a href="{% url 'editar_producto' producto.id %}" class="btn btn-sm btn-outline-primary me-1">Editar</a>
+
+                        <!-- Botón Eliminar -->
+                        <form action="{% url 'eliminar_producto' producto.id %}" method="POST" class="mb-0">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4">No hay productos registrados en la base de datos.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalProducto" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background-color: var(--tarjetas-contenedores); color: var(--texto-titulos);">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title">Gestión de Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulario para crear producto con soporte para imágenes -->
+                <form method="POST" action="" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del Producto</label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Torta Selva Negra" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea name="descripcion" class="form-control" rows="2" placeholder="Ingredientes y detalles..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Precio ($)</label>
+                        <input type="number" name="precio_final" class="form-control" min="0" step="100" placeholder="Ej: 15000" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Stock Inicial (Máximo 5 unidades)</label>
+                        <input type="number" name="stock" class="form-control" min="0" max="5" value="5" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Imagen del Producto</label>
+                        <input type="file" name="img" class="form-control" accept="image/*">
+                    </div>
+                    <button type="submit" class="btn btn-custom w-100">Guardar Producto</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
