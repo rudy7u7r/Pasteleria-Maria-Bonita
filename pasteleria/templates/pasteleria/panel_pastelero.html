@@ -1,60 +1,992 @@
 {% extends 'pasteleria/base.html' %}
 
+{% block title %}Panel de Control - Pastelería María Bonita{% endblock %}
+
 {% block content %}
 <style>
   .table-custom thead { background-color: var(--tarjetas-contenedores); }
 </style>
 
 <div class="container my-5">
-  <h2 class="mb-4">👨‍🍳 Panel de Control - Producción y Pedidos</h2>
-  <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="pills-stock-tab" data-bs-toggle="pill" data-bs-target="#pills-stock" type="button" role="tab">Ventas de Stock</button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="pills-personalizados-tab" data-bs-toggle="pill" data-bs-target="#pills-personalizados" type="button" role="tab">Pedidos Personalizados</button>
-    </li>
-  </ul>
-
-  <div class="tab-content" id="pills-tabContent">
-    <div class="tab-pane fade show active" id="pills-stock" role="tabpanel">
-      <div class="table-responsive shadow-sm rounded">
-        <table class="table table-hover table-custom align-middle mb-0">
-          <thead>
-            <tr><th># Orden</th><th>Producto</th><th>Cantidad</th><th>Total</th><th>Estado</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>#1001</td><td>Torta de Piña Tradicional</td><td>1 unidad</td><td>$12.000</td>
-              <td><span class="badge badge-estado">Listo para Entrega</span></td>
-            </tr>
-          </tbody>
-        </table>
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+      <span class="font-script fs-4" style="color: var(--acento-hover);">Administración y cocina</span>
+      <h2 class="mb-1">Panel de Control — Producción, Personal y Pedidos</h2>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="badge badge-stock px-3 py-2">Rol activo: {{ staff_rol|default:"Administrador" }}</span>
+        <small class="text-muted">
+          {% if staff_rol == 'Pastelero' %}
+            Casillas asignadas: Ventas/Preparación y Pedidos Personalizados.
+          {% elif staff_rol == 'Recepcionista' %}
+            Casillas asignadas: Ventas/Despachos y Coordinación de Pedidos.
+          {% else %}
+            Casillas asignadas: Acceso total (Ventas, Personalizados, Personal y Stock).
+          {% endif %}
+        </small>
       </div>
     </div>
-    <div class="tab-pane fade" id="pills-personalizados" role="tabpanel">
-      <div class="table-responsive shadow-sm rounded">
-        <table class="table table-hover table-custom align-middle mb-0">
-          <thead>
-            <tr>
-              <th># Solicitud</th><th>Detalles (Bizcocho/Relleno)</th><th>Fecha Requerida</th>
-              <th>Abono (25%)</th><th>Estado Actual</th><th>Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>#P-201</td><td>Bizcocho Vainilla / Relleno Manjar / Temática Cumpleaños</td>
-              <td>28/10/2026 - 16:00 h</td><td><strong class="text-success">$6.250 (Pagado)</strong></td>
-              <td><span class="badge badge-estado">Pendiente de Coordinación</span></td>
-              <td>
-                <button class="btn btn-sm btn-outline-success">Aceptar</button>
-                <button class="btn btn-sm btn-outline-danger">Rechazar</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'exportar_reporte_ventas' %}" class="btn btn-outline-pastel">Descargar Reporte CSV</a>
+      {% if staff_rol == 'Administrador' or user.is_superuser %}
+        <a href="{% url 'gestion_productos' %}" class="btn btn-outline-pastel">Ir a Gestión de Stock</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Resumen rápido de ventas -->
+  <div class="row g-3 mb-4" id="resumen-kpis-panel">
+    <div class="col-6 col-lg-3">
+      <div class="card card-custom p-3 h-100">
+        <small class="text-muted fw-bold">Ingresos Activos</small>
+        <div class="price fs-4 fw-bold mt-1">${{ resumen_ventas.total_ingresos|floatformat:0 }}</div>
+        <small class="text-muted" style="font-size: 0.75rem;">Boletas + Abonos personalizados</small>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card card-custom p-3 h-100">
+        <small class="text-muted fw-bold">Boletas Activas</small>
+        <div class="fs-4 fw-bold mt-1" style="color: var(--texto-titulos);">{{ resumen_ventas.cant_boletas_activas }}</div>
+        <small class="text-muted" style="font-size: 0.75rem;">Total: ${{ resumen_ventas.total_boletas|floatformat:0 }}</small>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card card-custom p-3 h-100">
+        <small class="text-muted fw-bold">Personalizados Activos</small>
+        <div class="fs-4 fw-bold mt-1" style="color: var(--texto-titulos);">{{ resumen_ventas.cant_pedidos_activos }}</div>
+        <small class="text-muted" style="font-size: 0.75rem;">Abonos: ${{ resumen_ventas.total_abonos|floatformat:0 }}</small>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card card-custom p-3 h-100">
+        <small class="text-muted fw-bold">Canceladas / Reembolsos</small>
+        <div class="fs-4 fw-bold mt-1 text-danger">{{ resumen_ventas.cant_boletas_canceladas|add:resumen_ventas.cant_pedidos_cancelados }}</div>
+        <small class="text-muted" style="font-size: 0.75rem;">{{ resumen_ventas.cant_boletas_canceladas }} boletas · {{ resumen_ventas.cant_pedidos_cancelados }} pers.</small>
       </div>
     </div>
   </div>
+
+  <ul class="nav nav-pills mb-4 gap-2" id="pills-tab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="pills-stock-tab" data-bs-toggle="pill" data-bs-target="#pills-stock" type="button" role="tab">
+        Ventas y Boletas ({{ boletas|length }})
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="pills-personalizados-tab" data-bs-toggle="pill" data-bs-target="#pills-personalizados" type="button" role="tab">
+        Pedidos Personalizados ({{ pedidos_personalizados|length }})
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="pills-metricas-tab" data-bs-toggle="pill" data-bs-target="#pills-metricas" type="button" role="tab">
+        Métricas y Ventas
+      </button>
+    </li>
+    {% if staff_rol == 'Administrador' or user.is_superuser %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="pills-equipo-tab" data-bs-toggle="pill" data-bs-target="#pills-equipo" type="button" role="tab">
+        Personal y Clientes ({{ personal_list|length }})
+      </button>
+    </li>
+    {% endif %}
+  </ul>
+
+  <div class="tab-content" id="pills-tabContent">
+    <!-- TAB 1: Ventas y Boletas -->
+    <div class="tab-pane fade show active" id="pills-stock" role="tabpanel">
+      <div class="card card-custom p-3 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 px-2 gap-2">
+          <h5 class="fw-bold mb-0">Boletas Emitidas</h5>
+          <div class="d-flex flex-wrap gap-1" id="filtros-boletas">
+            <button type="button" class="btn btn-sm btn-custom rounded-pill px-3 filtro-btn active" data-target-table="tabla-boletas" data-estado="todos">Todas</button>
+            <button type="button" class="btn btn-sm btn-outline-pastel rounded-pill px-3 filtro-btn" data-target-table="tabla-boletas" data-estado="En_Revision">En Revisión</button>
+            <button type="button" class="btn btn-sm btn-outline-pastel rounded-pill px-3 filtro-btn" data-target-table="tabla-boletas" data-estado="En_Preparacion">En Preparación</button>
+            <button type="button" class="btn btn-sm btn-outline-pastel rounded-pill px-3 filtro-btn" data-target-table="tabla-boletas" data-estado="En_Camino">En Camino</button>
+            <button type="button" class="btn btn-sm btn-outline-pastel rounded-pill px-3 filtro-btn" data-target-table="tabla-boletas" data-estado="Recibida">Recibidas</button>
+            <button type="button" class="btn btn-sm btn-outline-pastel rounded-pill px-3 filtro-btn" data-target-table="tabla-boletas" data-estado="Cancelada">Canceladas</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover table-custom align-middle mb-0" id="tabla-boletas">
+            <thead>
+              <tr><th>N° Boleta</th><th>Cliente</th><th>Dirección de Entrega</th><th>Productos</th><th>Fecha</th><th>Total</th><th>Estado Actual</th><th>Acción</th></tr>
+            </thead>
+            <tbody>
+              {% for boleta in boletas %}
+              <tr data-estado="{{ boleta.estado }}">
+                <td class="fw-bold">{{ boleta.numero_formateado }}</td>
+                <td>{% if boleta.cliente %}{{ boleta.cliente.nombre }} ({{ boleta.cliente.rut }}){% else %}Cliente General{% endif %}</td>
+                <td>
+                  <div id="dir-boleta-admin-{{ boleta.id }}"><small>{{ boleta.direccion_entrega|default:"Por confirmar" }}</small></div>
+                  {% if boleta.estado == 'En_Revision' or boleta.estado == 'En_Preparacion' %}
+                    <a href="javascript:void(0)" class="text-decoration-none small text-muted fst-italic d-inline-block mt-1" onclick="toggleEditarDirBoletaAdmin({{ boleta.id }})">Editar dirección</a>
+                    <form id="form-boleta-admin-{{ boleta.id }}" action="{% url 'editar_direccion_boleta' boleta.id %}" method="POST" class="mt-1 d-none">
+                      {% csrf_token %}
+                      <div class="input-group input-group-sm" style="min-width: 170px;">
+                        <input type="text" name="direccion_entrega" class="form-control form-control-sm" value="{{ boleta.direccion_entrega|default:'' }}" required>
+                        <button type="submit" class="btn btn-sm btn-custom">Guardar</button>
+                      </div>
+                    </form>
+                  {% endif %}
+                </td>
+                <td>
+                  {% for item in boleta.items.all %}
+                    <div>{{ item.cantidad }}x {{ item.producto_nombre }}</div>
+                  {% endfor %}
+                </td>
+                <td>{{ boleta.fecha|date:"d/m/Y H:i" }}</td>
+                <td>
+                  <div class="fw-bold" style="color: var(--acento-hover);">${{ boleta.total|floatformat:0 }}</div>
+                  <small class="text-muted">{{ boleta.get_metodo_pago_display }}</small>
+                </td>
+                <td>
+                  {% if boleta.estado == 'En_Revision' %}
+                    <span class="badge-estado badge-estado--pendiente">En Revisión</span>
+                  {% elif boleta.estado == 'En_Preparacion' %}
+                    <span class="badge-estado badge-estado--produccion">En Preparación</span>
+                  {% elif boleta.estado == 'En_Camino' %}
+                    <span class="badge-estado badge-estado--listo">Lista - Va a su domicilio</span>
+                  {% elif boleta.estado == 'Recibida' %}
+                    <span class="badge-estado badge-estado--listo" style="background-color: #c9e8d1; color: #1e592f;">Recibida por Cliente</span>
+                  {% elif boleta.estado == 'Cancelada' %}
+                    <span class="badge-estado badge-estado--cancelado">Cancelada</span>
+                  {% else %}
+                    <span class="badge-estado">{{ boleta.get_estado_display }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if boleta.estado == 'Recibida' %}
+                    <span class="small text-success fw-semibold">Confirmada por el cliente (No editable)</span>
+                  {% elif boleta.estado == 'Cancelada' %}
+                    <div class="small text-danger fw-semibold">Boleta cancelada — Se realizará reembolso</div>
+                    {% if boleta.motivo_cancelacion %}
+                      <div class="small text-muted mt-1"><strong>Motivo:</strong> {{ boleta.motivo_cancelacion }}</div>
+                    {% endif %}
+                  {% else %}
+                    <div class="d-flex flex-wrap gap-1">
+                      {% if boleta.estado == 'En_Revision' %}
+                        <form action="{% url 'actualizar_estado_boleta' boleta.id %}" method="POST" class="m-0">
+                          {% csrf_token %}
+                          <input type="hidden" name="estado" value="En_Preparacion">
+                          <button type="submit" class="btn btn-sm btn-outline-success">Aceptar y Preparar</button>
+                        </form>
+                      {% endif %}
+                      {% if boleta.estado == 'En_Revision' or boleta.estado == 'En_Preparacion' %}
+                        <form action="{% url 'actualizar_estado_boleta' boleta.id %}" method="POST" class="m-0">
+                          {% csrf_token %}
+                          <input type="hidden" name="estado" value="En_Camino">
+                          <button type="submit" class="btn btn-sm btn-outline-primary">Lista - Enviar a Domicilio</button>
+                        </form>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger btn-abrir-cancelar"
+                                data-action="{% url 'actualizar_estado_boleta' boleta.id %}"
+                                data-estado="Cancelada"
+                                data-titulo="Boleta N° {{ boleta.numero_formateado }}">
+                          Cancelar
+                        </button>
+                      {% elif boleta.estado == 'En_Camino' %}
+                        <span class="small text-muted">Esperando confirmación del cliente</span>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center py-3 text-muted">No hay boletas registradas aún.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Pedidos Personalizados, Pagos y Mensajes -->
+    <div class="tab-pane fade" id="pills-personalizados" role="tabpanel">
+      <div class="card card-custom p-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 px-2 gap-2">
+          <h5 class="fw-bold mb-0">Solicitudes de Tortas Personalizadas</h5>
+          <div class="d-flex flex-wrap gap-1" id="filtros-personalizados">
+            <button type="button" class="btn btn-sm btn-custom rounded-pill px-3 filtro-btn active" data-target-table="tabla-personalizados" data-estado="todos">Todos</button>
+            <button type="button" class="btn btn-sm btn-outline-pastel rounded-pill px-3 filtro-btn" data-target-table="tabla-personalizados" data-estado="Pendiente_Coordinacion">En Revisión</button>
+            <button type="button" class="btn btn-sm btn-outline-pastel rounded-pill px-3 filtro-btn" data-target-table="tabla-personalizados" data-estado="Aprobado_En_Produccion">En Preparación</button>
+            <button type="button" class="btn btn-sm btn-outline-pastel rounded-pill px-3 filtro-btn" data-target-table="tabla-personalizados" data-estado="Listo_Para_Entrega">Listas - Domicilio</button>
+            <button type="button" class="btn btn-sm btn-outline-pastel rounded-pill px-3 filtro-btn" data-target-table="tabla-personalizados" data-estado="Entregado">Recibidas</button>
+            <button type="button" class="btn btn-sm btn-outline-pastel rounded-pill px-3 filtro-btn" data-target-table="tabla-personalizados" data-estado="Cancelado">Canceladas</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover table-custom align-middle mb-0" id="tabla-personalizados">
+            <thead>
+              <tr>
+                <th># Solicitud</th><th>Cliente</th><th>Dirección de Entrega</th><th>Detalles (Bizcocho / Relleno / Cobertura)</th><th>Fecha Entrega</th>
+                <th>Abono (Pago)</th><th>Estado Actual</th><th>Chat Cliente</th><th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pedido in pedidos_personalizados %}
+              <tr data-estado="{{ pedido.estado }}">
+                <td>
+                  <button type="button" class="btn btn-link fw-bold text-decoration-none p-0" data-bs-toggle="modal" data-bs-target="#modalChatPedido{{ pedido.id }}" title="Click para abrir chat con el cliente">
+                    P-{{ pedido.id|stringformat:"03d" }}
+                  </button>
+                </td>
+                <td>
+                  {% if pedido.cliente %}
+                    <strong>{{ pedido.cliente.nombre }}</strong><br>
+                    <small class="text-muted">{{ pedido.cliente.rut }}</small>
+                  {% else %}
+                    Cliente
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border mb-1">{{ pedido.get_tipo_entrega_display }}</span>
+                  <div id="dir-pedido-admin-{{ pedido.id }}"><small>{{ pedido.direccion_entrega|default:"Por confirmar" }}</small></div>
+                  {% if pedido.estado == 'Pendiente_Coordinacion' or pedido.estado == 'Aprobado_En_Produccion' %}
+                    <a href="javascript:void(0)" class="text-decoration-none small text-muted fst-italic d-inline-block mt-1" onclick="toggleEditarDirPedidoAdmin({{ pedido.id }})">Editar dirección</a>
+                    <form id="form-pedido-admin-{{ pedido.id }}" action="{% url 'editar_direccion_pedido_personalizado' pedido.id %}" method="POST" class="mt-1 d-none">
+                      {% csrf_token %}
+                      <div class="input-group input-group-sm" style="min-width: 170px;">
+                        <input type="text" name="direccion_entrega" class="form-control form-control-sm" value="{{ pedido.direccion_entrega|default:'' }}" required>
+                        <button type="submit" class="btn btn-sm btn-custom">Guardar</button>
+                      </div>
+                    </form>
+                  {% endif %}
+                </td>
+                <td>
+                  <strong>{{ pedido.tipo_bizcocho }}</strong> / {{ pedido.rellenos }} / {{ pedido.coberturas }}
+                  {% if pedido.notas_decoracion %}
+                    <div class="small text-muted fst-italic">Nota: {{ pedido.notas_decoracion }}</div>
+                  {% endif %}
+                  {% if pedido.imagen_referencia %}
+                    <div class="mt-1">
+                      <a href="{{ pedido.imagen_referencia.url }}" target="_blank" rel="noopener" class="d-inline-block">
+                        <img src="{{ pedido.imagen_referencia.url }}" alt="Referencia" class="rounded-2 shadow-sm" style="max-height: 48px; border: 1px solid var(--borde-suave);">
+                      </a>
+                    </div>
+                  {% endif %}
+                </td>
+                <td>{{ pedido.fecha_entrega|date:"d/m/Y - H:i" }} h</td>
+                <td>
+                  <strong class="text-success">${{ pedido.monto_abono|floatformat:0 }}</strong>
+                  <div class="small text-muted">{{ pedido.get_metodo_pago_display }}</div>
+                  {% for pago in pedido.pago_set.all %}
+                    <span class="badge badge-stock d-block mt-1">{{ pago.estado_pago }}</span>
+                  {% endfor %}
+                </td>
+                <td>
+                  {% if pedido.estado == 'Pendiente_Coordinacion' %}
+                    <span class="badge-estado badge-estado--pendiente mb-1">{{ pedido.get_estado_display }}</span>
+                  {% elif pedido.estado == 'Aprobado_En_Produccion' %}
+                    <span class="badge-estado badge-estado--produccion mb-1">{{ pedido.get_estado_display }}</span>
+                  {% elif pedido.estado == 'Listo_Para_Entrega' %}
+                    <span class="badge-estado badge-estado--listo mb-1">{{ pedido.get_estado_display }}</span>
+                  {% elif pedido.estado == 'Entregado' %}
+                    <span class="badge-estado badge-estado--listo mb-1" style="background-color: #c9e8d1; color: #1e592f;">Recibida por el Cliente</span>
+                  {% elif pedido.estado == 'Cancelado' %}
+                    <span class="badge-estado badge-estado--cancelado mb-1">Cancelada</span>
+                  {% else %}
+                    <span class="badge badge-estado mb-1">{{ pedido.get_estado_display }}</span>
+                  {% endif %}
+                  {% if pedido.personal %}
+                    <div class="small text-muted">{{ pedido.personal.nombre }}</div>
+                  {% endif %}
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-pastel d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#modalChatPedido{{ pedido.id }}">
+                    Abrir Chat
+                    {% if pedido.mensaje_set.count %}
+                      <span class="badge bg-secondary">{{ pedido.mensaje_set.count }}</span>
+                    {% endif %}
+                  </button>
+                </td>
+                <td>
+                  {% if pedido.estado == 'Entregado' %}
+                    <span class="small text-success fw-semibold">Confirmada por el cliente (No editable)</span>
+                  {% elif pedido.estado == 'Cancelado' %}
+                    <div class="small text-danger fw-semibold">Solicitud cancelada — Se realizará reembolso</div>
+                    {% if pedido.motivo_cancelacion %}
+                      <div class="small text-muted mt-1"><strong>Motivo:</strong> {{ pedido.motivo_cancelacion }}</div>
+                    {% endif %}
+                  {% else %}
+                    <div class="d-flex flex-wrap gap-1">
+                      {% if pedido.estado == 'Pendiente_Coordinacion' %}
+                        <form action="{% url 'actualizar_estado_pedido' pedido.id %}" method="POST" class="m-0">
+                          {% csrf_token %}
+                          <input type="hidden" name="estado" value="Aprobado_En_Produccion">
+                          <button type="submit" class="btn btn-sm btn-outline-success">Aceptar y Preparar</button>
+                        </form>
+                      {% endif %}
+                      {% if pedido.estado == 'Pendiente_Coordinacion' or pedido.estado == 'Aprobado_En_Produccion' %}
+                        <form action="{% url 'actualizar_estado_pedido' pedido.id %}" method="POST" class="m-0">
+                          {% csrf_token %}
+                          <input type="hidden" name="estado" value="Listo_Para_Entrega">
+                          <button type="submit" class="btn btn-sm btn-outline-primary">Lista - Enviar a Domicilio</button>
+                        </form>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger btn-abrir-cancelar"
+                                data-action="{% url 'actualizar_estado_pedido' pedido.id %}"
+                                data-estado="Cancelado"
+                                data-titulo="Pedido Personalizado #P-{{ pedido.id|stringformat:'03d' }}">
+                          Cancelar
+                        </button>
+                      {% elif pedido.estado == 'Listo_Para_Entrega' %}
+                        <span class="small text-muted fw-semibold">Lista - Va a su domicilio (Esperando recepción)</span>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="9" class="text-center py-4 text-muted">No hay solicitudes de tortas personalizadas registradas.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modales de Chat para cada Pedido Personalizado -->
+      {% for pedido in pedidos_personalizados %}
+      <div class="modal fade" id="modalChatPedido{{ pedido.id }}" tabindex="-1" aria-labelledby="modalChatPedidoLabel{{ pedido.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content card-custom" style="border: 1px solid var(--borde-suave); border-radius: 18px;">
+            <div class="modal-header" style="background-color: var(--tarjetas-contenedores); border-bottom: 1px solid var(--borde-suave); border-radius: 18px 18px 0 0;">
+              <div>
+                <h5 class="modal-title fw-bold mb-0" id="modalChatPedidoLabel{{ pedido.id }}" style="color: var(--texto-titulos);">
+                  Chat de Coordinación — Pedido P-{{ pedido.id|stringformat:"03d" }}
+                </h5>
+                <small class="text-muted">
+                  Cliente: <strong>{{ pedido.cliente.nombre|default:"Cliente" }}</strong>
+                  {% if pedido.cliente.telefono %}&bull; Tel: {{ pedido.cliente.telefono }}{% endif %}
+                </small>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+              <!-- Resumen del pedido -->
+              <div class="p-3 rounded-3 mb-3" style="background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);">
+                <div class="row g-2 small">
+                  <div class="col-sm-6"><strong>Bizcocho:</strong> {{ pedido.tipo_bizcocho }}</div>
+                  <div class="col-sm-6"><strong>Relleno:</strong> {{ pedido.rellenos }}</div>
+                  <div class="col-sm-6"><strong>Cobertura:</strong> {{ pedido.coberturas }}</div>
+                  <div class="col-sm-6"><strong>Fecha Entrega:</strong> {{ pedido.fecha_entrega|date:"d/m/Y - H:i" }} hrs</div>
+                  <div class="col-12"><strong>Dirección de Entrega:</strong> {{ pedido.direccion_entrega|default:"Por confirmar" }}</div>
+                  {% if pedido.notas_decoracion %}
+                    <div class="col-12 mt-1 fst-italic"><strong>Notas / Decoración:</strong> {{ pedido.notas_decoracion }}</div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Historial de mensajes tipo chat -->
+              <div class="chat-container p-3 rounded-3 mb-3" id="chat-container-{{ pedido.id }}" data-pedido-id="{{ pedido.id }}" style="max-height: 320px; overflow-y: auto; background-color: #fffdfb; border: 1px solid var(--borde-suave);">
+                {% for msg in pedido.mensaje_set.all %}
+                  <div class="mb-3 d-flex flex-column {% if msg.personal %}align-items-end{% else %}align-items-start{% endif %}">
+                    <div class="p-2 px-3 rounded-3 small" style="max-width: 82%; {% if msg.personal %}background-color: var(--acento-suave); border: 1px solid var(--acento-botones);{% else %}background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);{% endif %}">
+                      <div class="d-flex justify-content-between align-items-center gap-3 mb-1">
+                        <strong style="color: var(--texto-titulos);">
+                          {% if msg.personal %}
+                            {{ msg.personal.nombre }} (Pastelería)
+                          {% else %}
+                            {{ pedido.cliente.nombre|default:"Cliente" }}
+                          {% endif %}
+                        </strong>
+                        <span class="text-muted" style="font-size: 0.72rem;">{{ msg.fecha_envio|date:"d/m H:i" }}</span>
+                      </div>
+                      <div class="text-break">{{ msg.contenido }}</div>
+                      {% if msg.propuesta_alternativa %}
+                        <div class="mt-2 p-1 px-2 rounded-2 small" style="background-color: #ffffff; border: 1px dashed var(--acento-botones);">
+                          <strong>Propuesta de ajuste:</strong> {{ msg.propuesta_alternativa }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% empty %}
+                  <p class="text-muted text-center my-4 small">Aún no hay mensajes en este chat. Inicie la conversación con el cliente para coordinar detalles de la torta.</p>
+                {% endfor %}
+              </div>
+
+              <!-- Formulario de envío de mensaje -->
+              {% if pedido.estado != 'Cancelado' and pedido.estado != 'Entregado' %}
+                <form action="{% url 'enviar_mensaje_pedido' pedido.id %}" method="POST" class="form-chat-ajax" data-pedido-id="{{ pedido.id }}" data-es-staff="1">
+                  {% csrf_token %}
+                  <div class="mb-2">
+                    <textarea name="contenido" rows="2" class="form-control form-control-sm" placeholder="Escriba un mensaje para el cliente..." required></textarea>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <input type="text" name="propuesta_alternativa" class="form-control form-control-sm" placeholder="Propuesta de ajuste de diseño o ingrediente (opcional)">
+                    <button type="submit" class="btn btn-sm btn-custom px-4 text-nowrap">Enviar al Cliente</button>
+                  </div>
+                </form>
+              {% else %}
+                <div class="small text-muted text-center py-1">
+                  Este pedido se encuentra finalizado o cancelado, por lo que el chat está en modo solo lectura.
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- TAB 3: Métricas y Ventas -->
+    <div class="tab-pane fade" id="pills-metricas" role="tabpanel">
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold mb-3" style="color: var(--texto-titulos);">Desglose por Método de Pago</h5>
+            <div class="table-responsive">
+              <table class="table table-custom align-middle mb-0">
+                <thead>
+                  <tr><th>Método</th><th>Operaciones</th><th class="text-end">Total Recaudado</th></tr>
+                </thead>
+                <tbody>
+                  {% for item in resumen_ventas.desglose_pagos %}
+                  <tr>
+                    <td class="fw-semibold">{{ item.label }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ item.cantidad }}</span></td>
+                    <td class="text-end fw-bold">${{ item.total|floatformat:0 }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold mb-3" style="color: var(--texto-titulos);">Tortas Más Vendidas (Boletas Activas)</h5>
+            <div class="table-responsive">
+              <table class="table table-custom align-middle mb-0">
+                <thead>
+                  <tr><th>Producto</th><th>Unidades</th><th class="text-end">Ingresos</th></tr>
+                </thead>
+                <tbody>
+                  {% for prod in resumen_ventas.top_productos %}
+                  <tr>
+                    <td class="fw-semibold">{{ prod.producto_nombre }}</td>
+                    <td><span class="badge badge-stock">{{ prod.total_vendido }}</span></td>
+                    <td class="text-end fw-bold">${{ prod.total_recaudado|floatformat:0 }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="3" class="text-center text-muted py-3">Aún no hay ventas registradas.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if staff_rol == 'Administrador' or user.is_superuser %}
+    <!-- TAB 3: Gestión de Personal y Clientes -->
+    <div class="tab-pane fade" id="pills-equipo" role="tabpanel">
+      <div class="row g-4">
+        <div class="col-lg-5">
+          <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold mb-3">Equipo de Personal Activo</h5>
+            <form action="{% url 'crear_personal' %}" method="POST" class="row g-2 mb-3 p-3 rounded-3" style="background-color: var(--tarjetas-contenedores);">
+              {% csrf_token %}
+              <div class="col-sm-4">
+                <input type="text" name="rut" class="form-control form-control-sm" placeholder="RUT (ej: 15.234.567-8)" required>
+              </div>
+              <div class="col-sm-4">
+                <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre completo" required>
+              </div>
+              <div class="col-sm-4">
+                <select name="rol" class="form-select form-select-sm">
+                  <option value="Pastelero">Pastelero</option>
+                  <option value="Recepcionista">Recepcionista</option>
+                  <option value="Administrador">Administrador</option>
+                </select>
+              </div>
+              <div class="col-sm-8">
+                <input type="text" name="telefono" class="form-control form-control-sm" placeholder="Teléfono (+569...)">
+              </div>
+              <div class="col-sm-4">
+                <button type="submit" class="btn btn-sm btn-custom w-100">Añadir Personal</button>
+              </div>
+            </form>
+
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead>
+                  <tr><th>RUT</th><th>Nombre</th><th>Rol</th><th>Teléfono</th></tr>
+                </thead>
+                <tbody>
+                  {% for p in personal_list %}
+                  <tr>
+                    <td>{{ p.rut }}</td>
+                    <td class="fw-bold">{{ p.nombre }}</td>
+                    <td><span class="badge badge-stock">{{ p.rol }}</span></td>
+                    <td>{{ p.telefono }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="4" class="text-center text-muted">Sin personal registrado.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-7">
+          <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold mb-1">Usuarios Registrados — Asignar Rol de Trabajador</h5>
+            <p class="small text-muted mb-3">Asigne un rol (Pastelero, Recepcionista o Administrador) a cualquier persona registrada en el sitio para habilitar sus casillas en el panel interno.</p>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead>
+                  <tr><th>RUT</th><th>Nombre</th><th>Correo</th><th>Rol Asignado</th></tr>
+                </thead>
+                <tbody>
+                  {% for c in clientes_list %}
+                  <tr>
+                    <td>{{ c.rut }}</td>
+                    <td class="fw-bold">{{ c.nombre }} {{ c.apellido|default:'' }}</td>
+                    <td><small>{{ c.email }}</small></td>
+                    <td>
+                      {% if c.usuario_asociado %}
+                        <form action="{% url 'asignar_rol_usuario' c.id %}" method="POST" class="d-flex gap-1 align-items-center m-0">
+                          {% csrf_token %}
+                          <select name="rol" class="form-select form-select-sm" style="min-width: 135px;">
+                            <option value="Cliente" {% if c.rol_actual == 'Cliente' %}selected{% endif %}>Cliente</option>
+                            <option value="Pastelero" {% if c.rol_actual == 'Pastelero' %}selected{% endif %}>Pastelero</option>
+                            <option value="Recepcionista" {% if c.rol_actual == 'Recepcionista' %}selected{% endif %}>Recepcionista</option>
+                            <option value="Administrador" {% if c.rol_actual == 'Administrador' %}selected{% endif %}>Administrador</option>
+                          </select>
+                          <button type="submit" class="btn btn-sm btn-outline-pastel">Asignar</button>
+                        </form>
+                      {% else %}
+                        <span class="badge bg-light text-muted">Sin cuenta web</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="4" class="text-center text-muted">Aún no hay clientes registrados.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
 </div>
+
+<!-- Modal para ingresar motivo de cancelación -->
+<div class="modal fade" id="modalCancelarConMotivo" tabindex="-1" aria-labelledby="modalCancelarTitulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content card-custom border-0">
+      <div class="modal-header border-bottom" style="border-color: var(--borde-suave) !important;">
+        <h5 class="modal-title fw-bold" id="modalCancelarTitulo" style="color: var(--texto-titulos);">Cancelar Pedido</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form id="formModalCancelar" method="POST" action="">
+        {% csrf_token %}
+        <input type="hidden" name="estado" id="cancelar-estado-input" value="">
+        <div class="modal-body">
+          <p class="small text-muted mb-2">
+            Estás por cancelar <strong id="cancelar-item-nombre">este pedido</strong>. Indica el motivo de la cancelación para que el cliente pueda verlo en su historial:
+          </p>
+          <div class="mb-2">
+            <label for="cancelar-motivo-input" class="form-label small fw-bold">Descripción / Motivo de cancelación <span class="text-danger">*</span></label>
+            <textarea name="motivo_cancelacion" id="cancelar-motivo-input" class="form-control" rows="3" required placeholder="Ej: Sin stock de ingredientes disponibles para la fecha solicitada."></textarea>
+          </div>
+          <div class="p-2 px-3 rounded-3 small" style="background-color: #fdeaea; border: 1px solid #f5c2c7; color: #842029;">
+            Al confirmar, el cliente verá que la compra/pedido fue cancelado y que <strong>se realizará reembolso</strong>.
+          </div>
+        </div>
+        <div class="modal-footer border-top" style="border-color: var(--borde-suave) !important;">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Volver</button>
+          <button type="submit" class="btn btn-danger btn-sm px-3">Confirmar Cancelación</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleEditarDirBoletaAdmin(id) {
+    const form = document.getElementById('form-boleta-admin-' + id);
+    if (form) {
+        form.classList.toggle('d-none');
+    }
+}
+function toggleEditarDirPedidoAdmin(id) {
+    const form = document.getElementById('form-pedido-admin-' + id);
+    if (form) {
+        form.classList.toggle('d-none');
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function renderizarMensajes(container, mensajes, esStaffView) {
+    if (!container) return;
+    if (!mensajes || mensajes.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center my-4 small">Aún no hay mensajes en este chat. Inicie la conversación con el cliente para coordinar detalles de la torta.</p>';
+        return;
+    }
+    let html = '';
+    mensajes.forEach(msg => {
+        const esMio = esStaffView ? msg.es_personal : !msg.es_personal;
+        const alignClass = esMio ? 'align-items-end' : 'align-items-start';
+        const bgStyle = esMio 
+            ? 'background-color: var(--acento-suave); border: 1px solid var(--acento-botones);' 
+            : 'background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);';
+
+        let ajusteHtml = '';
+        if (msg.propuesta_alternativa) {
+            ajusteHtml = `<div class="mt-2 p-1 px-2 rounded-2 small" style="background-color: #ffffff; border: 1px dashed var(--acento-botones);">
+                <strong>Propuesta de ajuste:</strong> ${escapeHtml(msg.propuesta_alternativa)}
+            </div>`;
+        }
+
+        html += `
+        <div class="mb-3 d-flex flex-column ${alignClass}">
+            <div class="p-2 px-3 rounded-3 small" style="max-width: 82%; ${bgStyle}">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-1">
+                    <strong style="color: var(--texto-titulos);">${escapeHtml(msg.emisor)}</strong>
+                    <span class="text-muted" style="font-size: 0.72rem;">${msg.fecha}</span>
+                </div>
+                <div class="text-break">${escapeHtml(msg.contenido)}</div>
+                ${ajusteHtml}
+            </div>
+        </div>`;
+    });
+
+    const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 60;
+    if (container.dataset.lastCount != mensajes.length || container.innerHTML.trim() === '') {
+        container.innerHTML = html;
+        container.dataset.lastCount = mensajes.length;
+        if (isAtBottom || !container.dataset.initialized) {
+            container.scrollTop = container.scrollHeight;
+            container.dataset.initialized = '1';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Recordar y activar la pestaña seleccionada (por hash o localStorage)
+    let activeTabId = window.location.hash;
+    if (!activeTabId || !document.querySelector(activeTabId)) {
+        activeTabId = localStorage.getItem('panel_active_tab') || '#pills-stock';
+    }
+    const triggerEl = document.querySelector(`button[data-bs-target="${activeTabId}"]`);
+    if (triggerEl) {
+        const tab = bootstrap.Tab.getOrCreateInstance(triggerEl);
+        tab.show();
+    }
+
+    // Guardar pestaña activa al hacer click
+    document.querySelectorAll('button[data-bs-toggle="pill"]').forEach(btn => {
+        btn.addEventListener('shown.bs.tab', function(e) {
+            const target = e.target.getAttribute('data-bs-target');
+            localStorage.setItem('panel_active_tab', target);
+            if (history.replaceState) {
+                history.replaceState(null, null, target);
+            } else {
+                window.location.hash = target;
+            }
+        });
+    });
+
+    // Restaurar posición de scroll exacta si existe
+    const savedScroll = sessionStorage.getItem('panel_scroll_pos');
+    if (savedScroll !== null) {
+        window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
+        sessionStorage.removeItem('panel_scroll_pos');
+    }
+
+    // 2. Chat en tiempo real y envío por AJAX sin recargar página
+    let chatInterval = null;
+
+    document.querySelectorAll('.modal[id^="modalChatPedido"]').forEach(modalEl => {
+        const pedidoId = modalEl.id.replace('modalChatPedido', '');
+        const chatContainer = document.getElementById('chat-container-' + pedidoId);
+
+        modalEl.addEventListener('shown.bs.modal', function() {
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            // Polling cada 2.5 segundos para mensajes nuevos en vivo
+            function pollMensajes() {
+                fetch('/pedido-personalizado/mensajes/' + pedidoId + '/', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        renderizarMensajes(chatContainer, data.mensajes, true);
+                    }
+                })
+                .catch(console.error);
+            }
+            pollMensajes();
+            chatInterval = setInterval(pollMensajes, 2500);
+        });
+
+        modalEl.addEventListener('hidden.bs.modal', function() {
+            if (chatInterval) {
+                clearInterval(chatInterval);
+                chatInterval = null;
+            }
+        });
+    });
+
+    // Envío de mensaje en modal vía AJAX
+    document.querySelectorAll('form.form-chat-ajax').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const pedidoId = form.dataset.pedidoId;
+            const chatContainer = document.getElementById('chat-container-' + pedidoId);
+            const formData = new FormData(form);
+            formData.append('ajax', '1');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    // Refrescar inmediatamente chat
+                    fetch('/pedido-personalizado/mensajes/' + pedidoId + '/', {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(r => r.json())
+                    .then(dataMensajes => {
+                        if (dataMensajes.status === 'ok') {
+                            renderizarMensajes(chatContainer, dataMensajes.mensajes, true);
+                            if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                    });
+
+                    // Limpiar campos del formulario
+                    const textarea = form.querySelector('textarea[name="contenido"]');
+                    if (textarea) textarea.value = '';
+                    const prop = form.querySelector('input[name="propuesta_alternativa"]');
+                    if (prop) prop.value = '';
+                } else {
+                    alert(data.message || 'Error al enviar el mensaje');
+                }
+            })
+            .catch(() => {
+                form.submit();
+            })
+            .finally(() => {
+                if (submitBtn) submitBtn.disabled = false;
+            });
+        });
+    });
+
+    function aplicarFiltrosActivos() {
+        document.querySelectorAll('.filtro-btn.active').forEach(btn => {
+            const tableId = btn.dataset.targetTable;
+            const estadoFiltro = btn.dataset.estado;
+            const table = document.getElementById(tableId);
+            if (!table) return;
+            table.querySelectorAll('tbody tr[data-estado]').forEach(row => {
+                const coincide = estadoFiltro === 'todos' || row.dataset.estado === estadoFiltro;
+                row.classList.toggle('d-none', !coincide);
+            });
+        });
+    }
+
+    function refrescarSeccionesPanel() {
+        return fetch(window.location.pathname, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.ok ? r.text() : null)
+        .then(html => {
+            if (!html) return;
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const selectores = [
+                '#resumen-kpis-panel',
+                '#pills-stock-tab',
+                '#pills-personalizados-tab',
+                '#tabla-boletas tbody',
+                '#tabla-personalizados tbody',
+                '#pills-metricas'
+            ];
+            selectores.forEach(sel => {
+                const nuevo = doc.querySelector(sel);
+                const actual = document.querySelector(sel);
+                if (nuevo && actual) {
+                    actual.innerHTML = nuevo.innerHTML;
+                }
+            });
+            aplicarFiltrosActivos();
+        })
+        .catch(() => {});
+    }
+
+    // 3. Edición de dirección vía AJAX sin recargar página (delegación)
+    document.addEventListener('submit', function(e) {
+        const formDir = e.target.closest('form[action*="editar-direccion"]');
+        if (formDir) {
+            e.preventDefault();
+            const formData = new FormData(formDir);
+            formData.append('ajax', '1');
+            const submitBtn = formDir.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            fetch(formDir.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    const td = formDir.closest('td');
+                    if (td) {
+                        const textoEl = td.querySelector('div[id^="dir-boleta-admin-"], div[id^="dir-pedido-admin-"]');
+                        if (textoEl) {
+                            textoEl.innerHTML = '<small>' + escapeHtml(data.direccion_entrega) + '</small>';
+                        }
+                    }
+                    formDir.classList.add('d-none');
+                    if (window.mostrarToast) {
+                        window.mostrarToast('Dirección actualizada', 'La dirección de entrega fue guardada correctamente.');
+                    }
+                } else {
+                    alert(data.message || 'Error al guardar dirección');
+                }
+            })
+            .catch(() => formDir.submit())
+            .finally(() => {
+                if (submitBtn) submitBtn.disabled = false;
+            });
+            return;
+        }
+
+        // 4. Cambios de estado (Aceptar, Enviar, Cancelar con motivo) vía AJAX sin recargar página
+        const formEstado = e.target.closest('form[action*="/boleta/estado/"], form[action*="/pedido-personalizado/estado/"]');
+        if (formEstado) {
+            e.preventDefault();
+            const formData = new FormData(formEstado);
+            formData.append('ajax', '1');
+            const submitBtn = formEstado.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            fetch(formEstado.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json().then(data => ({ ok: r.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok && data.status === 'ok') {
+                    if (formEstado.id === 'formModalCancelar') {
+                        const modalEl = document.getElementById('modalCancelarConMotivo');
+                        const inst = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+                        if (inst) inst.hide();
+                    }
+                    refrescarSeccionesPanel();
+                    if (window.mostrarToast) {
+                        window.mostrarToast('Estado actualizado', data.message || 'Cambio guardado correctamente.');
+                    }
+                } else {
+                    alert((data && data.message) || 'No se pudo actualizar el estado.');
+                }
+            })
+            .catch(() => formEstado.submit())
+            .finally(() => {
+                if (submitBtn) submitBtn.disabled = false;
+            });
+        }
+    });
+
+    // 4b. Modal de cancelación con motivo obligatorio (delegación)
+    const modalCancelarEl = document.getElementById('modalCancelarConMotivo');
+    const formModalCancelar = document.getElementById('formModalCancelar');
+    const cancelarEstadoInput = document.getElementById('cancelar-estado-input');
+    const cancelarMotivoInput = document.getElementById('cancelar-motivo-input');
+    const cancelarItemNombre = document.getElementById('cancelar-item-nombre');
+
+    document.addEventListener('click', function(e) {
+        const btnCancelar = e.target.closest('.btn-abrir-cancelar');
+        if (btnCancelar && modalCancelarEl && formModalCancelar) {
+            formModalCancelar.action = btnCancelar.dataset.action || '';
+            if (cancelarEstadoInput) cancelarEstadoInput.value = btnCancelar.dataset.estado || '';
+            if (cancelarItemNombre) cancelarItemNombre.textContent = btnCancelar.dataset.titulo || 'este pedido';
+            if (cancelarMotivoInput) cancelarMotivoInput.value = '';
+            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalCancelarEl);
+            modalInstance.show();
+            setTimeout(() => { if (cancelarMotivoInput) cancelarMotivoInput.focus(); }, 250);
+            return;
+        }
+
+        // 5. Filtros rápidos por estado en tablas del panel
+        const btnFiltro = e.target.closest('.filtro-btn');
+        if (btnFiltro) {
+            const group = btnFiltro.parentElement;
+            if (group) {
+                group.querySelectorAll('.filtro-btn').forEach(b => {
+                    b.classList.remove('btn-custom', 'active');
+                    b.classList.add('btn-outline-pastel');
+                });
+            }
+            btnFiltro.classList.remove('btn-outline-pastel');
+            btnFiltro.classList.add('btn-custom', 'active');
+            aplicarFiltrosActivos();
+        }
+    });
+
+    // 6. Auto-actualización en vivo de todas las secciones cuando llegan nuevas compras o pedidos
+    let ultimaFirmaPanel = null;
+    let ultimoBoletasCount = {{ boletas|length }};
+    let ultimoPedidosCount = {{ pedidos_personalizados|length }};
+
+    function verificarNuevosPedidosPanel() {
+        fetch('{% url "panel_pastelero_resumen_vivo" %}', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (!data || data.status !== 'ok') return;
+            if (ultimaFirmaPanel === null) {
+                ultimaFirmaPanel = data.firma;
+                ultimoBoletasCount = data.boletas_count;
+                ultimoPedidosCount = data.pedidos_count;
+                return;
+            }
+            if (data.firma !== ultimaFirmaPanel) {
+                const hayNuevaBoleta = data.boletas_count > ultimoBoletasCount;
+                const hayNuevoPedido = data.pedidos_count > ultimoPedidosCount;
+                ultimaFirmaPanel = data.firma;
+                ultimoBoletasCount = data.boletas_count;
+                ultimoPedidosCount = data.pedidos_count;
+
+                refrescarSeccionesPanel().then(() => {
+                    if (window.mostrarToast) {
+                        if (hayNuevaBoleta) {
+                            window.mostrarToast('Nueva compra recibida', 'Se registró una nueva boleta en Ventas y Boletas.');
+                        } else if (hayNuevoPedido) {
+                            window.mostrarToast('Nuevo pedido personalizado', 'Llegó una nueva solicitud de torta personalizada.');
+                        }
+                    }
+                });
+            }
+        })
+        .catch(() => {});
+    }
+
+    verificarNuevosPedidosPanel();
+    setInterval(verificarNuevosPedidosPanel, 5000);
+});
+</script>
 {% endblock %}

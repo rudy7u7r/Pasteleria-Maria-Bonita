@@ -3,6 +3,14 @@ from django.db.models import F
 from django.contrib.auth.models import User
 
 
+METODOS_PAGO_CHOICES = [
+    ('Debito', 'Tarjeta de Débito'),
+    ('Credito', 'Tarjeta de Crédito'),
+    ('Transferencia', 'Transferencia Bancaria'),
+    ('Efectivo', 'Efectivo al recibir'),
+]
+
+
 class Cliente(models.Model):
     rut = models.CharField(max_length=12, unique=True)
     nombre = models.CharField(max_length=100)
@@ -26,6 +34,13 @@ class Personal(models.Model):
     nombre = models.CharField(max_length=100)
     telefono = models.CharField(max_length=15)
     rol = models.CharField(max_length=30, choices=ROLES, default='Pastelero')
+    usuario = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='perfil_personal',
+    )
 
     def __str__(self):
         return f"{self.nombre} - {self.rol}"
@@ -47,12 +62,20 @@ class Producto(models.Model):
 
 
 class VentaStock(models.Model):
+    ESTADOS_VENTA = [
+        ('Pendiente', 'Pendiente de Revisión'),
+        ('Aceptado', 'Pedido Aceptado'),
+        ('Listo_Para_Entrega', 'Listo para Entrega'),
+        ('Cancelado', 'Cancelado (Stock Devuelto)'),
+    ]
+
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True)
     cantidad_comprada = models.IntegerField()
+    estado = models.CharField(max_length=30, choices=ESTADOS_VENTA, default='Pendiente')
 
     def procesar_compra_directa(self):
-        if not 1 <= self.cantidad_comprada <= 5: 
+        if not 1 <= self.cantidad_comprada <= 5:
             return False
 
         with transaction.atomic():
@@ -80,15 +103,23 @@ class VentaStock(models.Model):
         return True
 
 
+COSTO_DESPACHO_DOMICILIO = 3000
+
+TIPOS_ENTREGA_CHOICES = [
+    ('Domicilio', 'Despacho a Domicilio'),
+    ('Retiro', 'Retiro en Local'),
+]
+
+
 class PedidoPersonalizado(models.Model):
     PORCENTAJE_ABONO = 0.25
 
     ESTADOS_PEDIDO = [
-        ('Pendiente_Coordinacion', 'Pendiente de Coordinación'),
-        ('Aprobado_En_Produccion', 'Aprobado en Producción'),
-        ('Listo_Para_Entrega', 'Listo para Entrega'),
-        ('Entregado', 'Entregado'),
-        ('Cancelado', 'Cancelado'),
+        ('Pendiente_Coordinacion', 'En Revisión'),
+        ('Aprobado_En_Produccion', 'En Preparación'),
+        ('Listo_Para_Entrega', 'Lista - Va a su domicilio'),
+        ('Entregado', 'Recibida por el Cliente'),
+        ('Cancelado', 'Cancelada'),
     ]
 
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, null=True, blank=True)
@@ -97,6 +128,19 @@ class PedidoPersonalizado(models.Model):
     rellenos = models.CharField(max_length=100)
     coberturas = models.CharField(max_length=100)
     notas_decoracion = models.TextField()
+    imagen_referencia = models.ImageField(upload_to='pedidos_referencia/', null=True, blank=True)
+    tipo_entrega = models.CharField(
+        max_length=20,
+        choices=TIPOS_ENTREGA_CHOICES,
+        default='Domicilio',
+    )
+    costo_envio = models.PositiveIntegerField(default=0)
+    direccion_entrega = models.CharField(max_length=200, default='Por confirmar', blank=True)
+    metodo_pago = models.CharField(
+        max_length=30,
+        choices=METODOS_PAGO_CHOICES,
+        default='Debito',
+    )
     porcentaje_abono = models.FloatField(default=PORCENTAJE_ABONO)
     monto_abono = models.FloatField()
     estado = models.CharField(
@@ -104,8 +148,19 @@ class PedidoPersonalizado(models.Model):
         choices=ESTADOS_PEDIDO,
         default='Pendiente_Coordinacion',
     )
+    motivo_cancelacion = models.TextField(blank=True, default='')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_entrega = models.DateTimeField()
+
+    @property
+    def precio_total(self):
+        if self.porcentaje_abono:
+            return round(self.monto_abono / self.porcentaje_abono)
+        return round(self.monto_abono * 4)
+
+    @property
+    def saldo_pendiente(self):
+        return max(0, round(self.precio_total - self.monto_abono))
 
     def calcular_abono_25(self, precio_total):
         self.porcentaje_abono = self.PORCENTAJE_ABONO
@@ -154,22 +209,68 @@ class Mensaje(models.Model):
         self.save()
 
 
-# --- NUEVOS MODELOS: BOLETAS Y DETALLES DE COMPRA ---
+# --- MODELOS: BOLETAS Y DETALLES DE COMPRA ---
 
 class Boleta(models.Model):
-    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    ESTADOS_BOLETA = [
+        ('En_Revision', 'En Revisión'),
+        ('En_Preparacion', 'En Preparación'),
+        ('En_Camino', 'Lista - Va a su domicilio'),
+        ('Recibida', 'Recibida por el Cliente'),
+        ('Cancelada', 'Cancelada'),
+    ]
+
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, null=True, blank=True)
+    tipo_entrega = models.CharField(
+        max_length=20,
+        choices=TIPOS_ENTREGA_CHOICES,
+        default='Domicilio',
+    )
+    costo_envio = models.PositiveIntegerField(default=0)
+    direccion_entrega = models.CharField(max_length=200, blank=True, null=True)
+    metodo_pago = models.CharField(
+        max_length=30,
+        choices=METODOS_PAGO_CHOICES,
+        default='Debito',
+    )
     fecha = models.DateTimeField(auto_now_add=True)
     total = models.DecimalField(max_digits=10, decimal_places=2)
-    
+    estado = models.CharField(max_length=30, choices=ESTADOS_BOLETA, default='En_Revision')
+    motivo_cancelacion = models.TextField(blank=True, default='')
+
+    @property
+    def numero_formateado(self):
+        return f"{self.id:03d}"
+
     def __str__(self):
-        return f"Boleta #{self.id} - {self.usuario.username}"
+        nombre_cliente = self.cliente.nombre if self.cliente else "Cliente"
+        return f"Boleta N° {self.numero_formateado} - {nombre_cliente} ({self.get_estado_display()})"
 
 
 class DetalleBoleta(models.Model):
     boleta = models.ForeignKey(Boleta, related_name='items', on_delete=models.CASCADE)
+    producto = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True)
     producto_nombre = models.CharField(max_length=100)
     cantidad = models.IntegerField(default=1)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
         return f"{self.cantidad}x {self.producto_nombre} (Boleta #{self.boleta.id})"
+
+
+class Resena(models.Model):
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, null=True, blank=True, related_name='resenas')
+    boleta = models.ForeignKey(Boleta, on_delete=models.CASCADE, null=True, blank=True, related_name='resenas')
+    pedido_personalizado = models.ForeignKey(
+        PedidoPersonalizado, on_delete=models.CASCADE, null=True, blank=True, related_name='resenas'
+    )
+    calificacion = models.PositiveSmallIntegerField(default=5)
+    comentario = models.TextField(blank=True, default='')
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"Reseña {self.calificacion}/5 - {self.cliente.nombre}"

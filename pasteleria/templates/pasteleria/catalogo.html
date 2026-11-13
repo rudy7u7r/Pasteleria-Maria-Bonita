@@ -5,60 +5,99 @@
 {% block content %}
 <section class="hero-banner" aria-labelledby="hero-title">
     <div class="hero-content">
-        <span class="hero-eyebrow">Hecho con cariño, recién horneado</span>
+        <span class="hero-eyebrow">Recetas tradicionales recién horneadas</span>
         <h1 class="hero-title" id="hero-title">Un pedacito de felicidad</h1>
-        <p class="hero-description">Tortas artesanales para celebrar tus momentos más dulces.</p>
-        <a class="btn btn-custom btn-lg" href="#productos">Descubrir sabores</a>
+        <p class="hero-description">Tortas artesanales elaboradas cada día con ingredientes seleccionados para acompañar sus celebraciones.</p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a class="btn btn-custom btn-lg px-4" href="#productos">Ver Catálogo</a>
+            {% if user.is_authenticated and not user.is_staff %}
+                <a class="btn btn-outline-pastel btn-lg px-4" href="{% url 'pedido_personalizado' %}">Solicitar Torta Personalizada</a>
+            {% endif %}
+        </div>
     </div>
 </section>
 
-<section id="productos" aria-labelledby="catalog-title">
-    <div class="text-center">
-        <h2 class="catalog-section-title" id="catalog-title">Nuestros favoritos</h2>
-        <p class="catalog-intro">Preparados artesanalmente con ingredientes seleccionados.</p>
+<section id="productos" aria-labelledby="catalog-title" class="pt-2">
+    <div class="text-center mb-4">
+        <span class="catalog-subtitle-script d-block mt-4">Selección de pastelería fina</span>
+        <h2 class="catalog-section-title mt-1" id="catalog-title">Nuestras Tortas en Vitrina</h2>
+        <p class="catalog-intro">Elija sus productos preferidos y guárdelos en el carrito de compras.</p>
+
+        <form id="form-filtros-catalogo" method="GET" action="{% url 'catalogo' %}#productos" class="mx-auto mt-3" style="max-width: 780px;">
+            <div class="row g-2 align-items-center justify-content-center">
+                <div class="col-md-5">
+                    <input type="search" id="buscador-catalogo" name="q" value="{{ q|default:'' }}" class="form-control rounded-pill px-4" placeholder="Buscar torta por nombre o ingrediente..." aria-label="Buscar tortas">
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <select id="orden-catalogo" name="orden" class="form-select rounded-pill px-3">
+                        <option value="">Orden destacado</option>
+                        <option value="precio_asc" {% if orden == 'precio_asc' %}selected{% endif %}>Menor precio</option>
+                        <option value="precio_desc" {% if orden == 'precio_desc' %}selected{% endif %}>Mayor precio</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-auto d-flex align-items-center justify-content-center gap-2">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="filtro-disponible" name="disponible" value="1" {% if solo_disponibles %}checked{% endif %}>
+                        <label class="form-check-label small fw-semibold" for="filtro-disponible">Solo con stock</label>
+                    </div>
+                    <button type="button" id="btn-limpiar-filtros" class="btn btn-sm btn-outline-pastel rounded-pill px-3 {% if not q and not solo_disponibles and not orden %}d-none{% endif %}">Limpiar</button>
+                </div>
+            </div>
+        </form>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-4" id="grid-productos">
         {% for producto in productos %}
-        <div class="col-sm-6 col-lg-4">
-            <article class="card card-custom product-card shadow-sm h-100">
-                <!-- Imagen clickeable -->
-                <a href="{% url 'detalle_producto' producto.id %}">
+        <div class="col-sm-6 col-lg-4 producto-item"
+             data-nombre="{{ producto.nombre|lower }}"
+             data-desc="{{ producto.descripcion|lower }}"
+             data-precio="{{ producto.precio_final|floatformat:0 }}"
+             data-stock="{{ producto.stock }}"
+             data-orden-inicial="{{ forloop.counter0 }}">
+            <article class="card card-custom product-card h-100">
+                <a href="{% url 'detalle_producto' producto.id %}" class="product-img-wrapper d-block text-decoration-none">
                     {% if producto.img %}
-                        <img src="{{ producto.img.url }}" class="card-img-top" alt="{{ producto.nombre }}" style="object-fit: cover; height: 180px; border-top-left-radius: var(--border-radius); border-top-right-radius: var(--border-radius);">
+                        <img src="{{ producto.img.url }}" alt="{{ producto.nombre }}">
                     {% else %}
                         <div class="product-art" role="img" aria-label="Ilustración">🍰</div>
                     {% endif %}
                 </a>
-                
+
                 <div class="card-body d-flex flex-column">
-                    <!-- Toda la zona central (Título y Descripción) ahora es clickeable -->
                     <a href="{% url 'detalle_producto' producto.id %}" class="text-decoration-none d-flex flex-column flex-grow-1" style="color: inherit;">
                         <h3 class="card-title">{{ producto.nombre }}</h3>
-                        <p class="card-text flex-grow-1">{{ producto.descripcion }}</p>
+                        {% if producto.total_resenas %}
+                            <div class="small mb-1" style="color: #d9822b;">
+                                ★ {{ producto.promedio_calificacion|floatformat:1 }} <span class="text-muted">({{ producto.total_resenas }})</span>
+                            </div>
+                        {% endif %}
+                        <p class="card-text flex-grow-1" style="color: var(--texto-secundario);">{{ producto.descripcion }}</p>
                     </a>
-                    
-                    <div class="d-flex justify-content-between align-items-center mb-3 mt-3">
-                        <span class="price">${{ producto.precio_final }}</span>
-                        
+
+                    <div class="d-flex justify-content-between align-items-center mb-3 mt-3 pt-2 border-top" style="border-color: var(--borde-suave) !important;">
+                        <span class="price">${{ producto.precio_final|floatformat:0 }}</span>
+
                         {% if producto.stock > 0 %}
-                            <span class="badge badge-stock"><span class="stock-count">{{ producto.stock }}</span> unidades</span>
+                            <span class="badge badge-stock"><span class="stock-count">{{ producto.stock }}</span> disponibles</span>
                         {% else %}
-                            <span class="badge bg-danger text-white">Agotada</span>
+                            <span class="badge bg-danger text-white rounded-pill px-3 py-2">Agotada</span>
                         {% endif %}
                     </div>
-                    
-                    <!-- Botones de acción divididos -->
+
                     <div class="d-flex gap-2">
-                        <a href="{% url 'detalle_producto' producto.id %}" class="btn btn-outline-secondary w-50">Ver detalles</a>
-                        
-                        {% if producto.stock > 0 %}
-                            <form action="{% url 'comprar_producto' producto.id %}" method="POST" class="m-0 w-50">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-custom w-100" style="background-color: #e5989b; color: white; border: none;">Comprar</button>
-                            </form>
+                        {% if user.is_staff %}
+                            <a href="{% url 'detalle_producto' producto.id %}" class="btn btn-outline-pastel w-100">Ver detalles</a>
                         {% else %}
-                            <button class="btn btn-secondary w-50" type="button" disabled>Sin stock</button>
+                            <a href="{% url 'detalle_producto' producto.id %}" class="btn btn-outline-pastel w-50">Ver detalles</a>
+
+                            {% if producto.stock > 0 %}
+                                <form action="{% url 'comprar_producto' producto.id %}" method="POST" class="m-0 w-50 form-add-cart" data-producto-id="{{ producto.id }}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-custom w-100 btn-add-text">Añadir al Carrito</button>
+                                </form>
+                            {% else %}
+                                <button class="btn btn-secondary w-50 rounded-3" type="button" disabled>Sin stock</button>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -66,10 +105,155 @@
         </div>
         {% empty %}
         <div class="col-12 text-center mt-5">
-            <p class="text-muted fs-5">En este momento no hay productos registrados en nuestro catálogo.</p>
-            <p class="text-muted">¡Vuelve pronto para ver nuestras novedades!</p>
+            <div class="card card-custom p-5 mx-auto" style="max-width: 540px;">
+                <h4 class="mb-2">Catálogo en actualización</h4>
+                <p class="text-muted mb-3">En este momento no hay tortas disponibles en vitrina.</p>
+                {% if user.is_authenticated and not user.is_staff %}
+                    <a href="{% url 'pedido_personalizado' %}" class="btn btn-custom mx-auto">Solicitar Torta Personalizada</a>
+                {% endif %}
+            </div>
         </div>
         {% endfor %}
     </div>
+
+    <div id="sin-resultados-catalogo" class="text-center py-5 d-none">
+        <div class="card card-custom p-4 mx-auto" style="max-width: 480px;">
+            <h5 class="mb-1">No encontramos tortas con ese nombre</h5>
+            <p class="text-muted small mb-0">Pruebe con otra palabra clave o explore todas nuestras opciones disponibles.</p>
+        </div>
+    </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Buscador y filtros en tiempo real del catálogo sin recargar la página
+    const formFiltros = document.getElementById('form-filtros-catalogo');
+    const buscador = document.getElementById('buscador-catalogo');
+    const selectOrden = document.getElementById('orden-catalogo');
+    const checkDisponible = document.getElementById('filtro-disponible');
+    const btnLimpiar = document.getElementById('btn-limpiar-filtros');
+    const gridProductos = document.getElementById('grid-productos');
+    const sinResultados = document.getElementById('sin-resultados-catalogo');
+
+    function aplicarFiltrosCatalogo() {
+        if (!gridProductos) return;
+        const items = Array.from(gridProductos.querySelectorAll('.producto-item'));
+        const q = buscador ? buscador.value.trim().toLowerCase() : '';
+        const orden = selectOrden ? selectOrden.value : '';
+        const soloStock = checkDisponible ? checkDisponible.checked : false;
+
+        items.sort((a, b) => {
+            if (orden === 'precio_asc') {
+                return Number(a.dataset.precio || 0) - Number(b.dataset.precio || 0);
+            }
+            if (orden === 'precio_desc') {
+                return Number(b.dataset.precio || 0) - Number(a.dataset.precio || 0);
+            }
+            return Number(a.dataset.ordenInicial || 0) - Number(b.dataset.ordenInicial || 0);
+        });
+
+        let visibles = 0;
+        items.forEach(item => {
+            gridProductos.appendChild(item);
+            const nombre = item.dataset.nombre || '';
+            const desc = item.dataset.desc || '';
+            const stock = Number(item.dataset.stock || 0);
+            const coincideTexto = !q || nombre.includes(q) || desc.includes(q);
+            const coincideStock = !soloStock || stock > 0;
+            const mostrar = coincideTexto && coincideStock;
+            item.classList.toggle('d-none', !mostrar);
+            if (mostrar) visibles++;
+        });
+
+        if (sinResultados) {
+            sinResultados.classList.toggle('d-none', visibles > 0);
+        }
+        if (btnLimpiar) {
+            btnLimpiar.classList.toggle('d-none', !(q || orden || soloStock));
+        }
+
+        const params = new URLSearchParams();
+        if (q) params.set('q', q);
+        if (orden) params.set('orden', orden);
+        if (soloStock) params.set('disponible', '1');
+        const queryString = params.toString();
+        const nuevaUrl = queryString ? `${window.location.pathname}?${queryString}#productos` : `${window.location.pathname}#productos`;
+        window.history.replaceState(null, '', nuevaUrl);
+    }
+
+    if (formFiltros) {
+        formFiltros.addEventListener('submit', function(e) {
+            e.preventDefault();
+            aplicarFiltrosCatalogo();
+        });
+    }
+    if (buscador) buscador.addEventListener('input', aplicarFiltrosCatalogo);
+    if (selectOrden) selectOrden.addEventListener('change', aplicarFiltrosCatalogo);
+    if (checkDisponible) checkDisponible.addEventListener('change', aplicarFiltrosCatalogo);
+    if (btnLimpiar) {
+        btnLimpiar.addEventListener('click', function() {
+            if (buscador) buscador.value = '';
+            if (selectOrden) selectOrden.value = '';
+            if (checkDisponible) checkDisponible.checked = false;
+            aplicarFiltrosCatalogo();
+        });
+    }
+
+    const forms = document.querySelectorAll('.form-add-cart');
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = form.querySelector('.btn-add-text');
+            const originalText = btn.innerText;
+            const productoId = form.dataset.productoId;
+            const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            btn.disabled = true;
+            btn.innerText = 'Agregando...';
+
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            formData.append('ajax', '1');
+
+            fetch(`/carrito/agregar/${productoId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    btn.innerText = '¡Añadido!';
+                    btn.classList.add('btn-success');
+                    btn.classList.remove('btn-custom');
+
+                    // Actualizar contador del carrito en el navbar sin recargar
+                    const cartCounters = document.querySelectorAll('.cart-counter');
+                    cartCounters.forEach(c => {
+                        c.textContent = data.total_items;
+                    });
+
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerText = originalText;
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-custom');
+                    }, 1200);
+                } else {
+                    alert(data.message || 'No se pudo añadir al carrito.');
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                }
+            })
+            .catch(err => {
+                form.submit();
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -4,50 +4,93 @@
 
 {% block content %}
 <div class="container my-5">
-    <div class="row align-items-center card-custom shadow-sm p-4 mx-auto" style="max-width: 900px; background-color: var(--tarjetas-contenedores);">
-        
+    <div class="row align-items-center card-custom p-4 p-lg-5 mx-auto" style="max-width: 940px; background-color: var(--tarjetas-contenedores);">
+
         <!-- Columna Izquierda: Imagen Grande -->
         <div class="col-md-6 text-center mb-4 mb-md-0">
             {% if producto.img %}
-                <img src="{{ producto.img.url }}" class="img-fluid rounded shadow" alt="{{ producto.nombre }}" style="max-height: 400px; object-fit: cover; width: 100%;">
+                <img src="{{ producto.img.url }}" class="img-fluid rounded-4 shadow-sm" alt="{{ producto.nombre }}" style="max-height: 400px; object-fit: cover; width: 100%; border: 2px solid var(--borde-suave);">
             {% else %}
-                <div class="product-art rounded shadow d-flex align-items-center justify-content-center mx-auto" style="height: 300px; font-size: 5rem; background-color: #f8f9fa;">🍰</div>
+                <div class="product-art rounded-4 shadow-sm d-flex align-items-center justify-content-center mx-auto" style="height: 320px; font-size: 5rem;">🍰</div>
             {% endif %}
         </div>
-        
+
         <!-- Columna Derecha: Información -->
         <div class="col-md-6 d-flex flex-column justify-content-center px-md-4">
-            <h2 class="fw-bold mb-3" style="color: var(--texto-titulos);">{{ producto.nombre }}</h2>
-            <p class="fs-5 text-muted mb-4" style="line-height: 1.6;">{{ producto.descripcion }}</p>
-            
-            <h3 class="fw-bold mb-4" style="color: #e5989b;">${{ producto.precio_final }}</h3>
-            
-            <div class="mb-4">
+            <span class="font-script fs-4" style="color: var(--acento-hover);">Especialidad de la casa</span>
+            <h2 class="fw-bold mb-2">{{ producto.nombre }}</h2>
+            {% if resenas %}
+                <div class="small mb-3" style="color: #d9822b;">
+                    ★ {{ promedio_calificacion|floatformat:1 }} / 5.0 <span class="text-muted">({{ resenas|length }} reseña{{ resenas|length|pluralize }})</span>
+                </div>
+            {% endif %}
+            <p class="fs-5 mb-4" style="color: var(--texto-secundario); line-height: 1.65;">{{ producto.descripcion }}</p>
+
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <h3 class="price fs-2 mb-0">${{ producto.precio_final|floatformat:0 }}</h3>
                 {% if producto.stock > 0 %}
                     <span class="badge badge-stock fs-6 px-3 py-2">{{ producto.stock }} unidades en stock</span>
                 {% else %}
-                    <span class="badge bg-danger text-white fs-6 px-3 py-2">Agotada</span>
+                    <span class="badge bg-danger text-white rounded-pill fs-6 px-3 py-2">Agotada</span>
                 {% endif %}
             </div>
-            
+
             <div class="d-flex flex-column flex-sm-row gap-2 mt-2">
-                {% if producto.stock > 0 %}
-                    <!-- Si es un cliente autenticado (no admin/staff), puede añadir al carrito -->
-                    {% if user.is_authenticated and not user.is_staff %}
-                        <a href="{% url 'agregar_al_carrito' producto.id %}" class="btn btn-custom w-100 py-2 fs-5 text-white text-decoration-none text-center" style="background-color: #e5989b; border: none;">Añadir al Carrito</a>
-                    
-                    <!-- Si no ha iniciado sesión -->
-                    {% elif not user.is_authenticated %}
-                        <a href="{% url 'login' %}" class="btn btn-custom w-100 py-2 fs-5 text-white text-decoration-none text-center" style="background-color: #e5989b; border: none;">Inicia sesión para comprar</a>
+                {% if not user.is_staff %}
+                    {% if producto.stock > 0 %}
+                        <form action="{% url 'comprar_producto' producto.id %}" method="POST" class="flex-grow-1 m-0 form-add-cart-detail" data-producto-id="{{ producto.id }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="ir_carrito" value="1">
+                            <button type="submit" class="btn btn-custom w-100 py-2 fs-5 btn-add-detail-text">Añadir e ir al Carrito</button>
+                        </form>
+                    {% else %}
+                        <button class="btn btn-secondary w-100 py-2 fs-5 flex-grow-1" disabled>Sin stock</button>
                     {% endif %}
-                {% else %}
-                    <button class="btn btn-secondary w-100 py-2 fs-5 flex-grow-1" disabled>Sin stock</button>
                 {% endif %}
-                
-                <a href="{% url 'catalogo' %}" class="btn btn-outline-secondary py-2 px-4">Volver al catálogo</a>
+
+                <a href="{% url 'catalogo' %}" class="btn btn-outline-pastel py-2 px-4">Volver al Catálogo</a>
             </div>
         </div>
-        
+
+    </div>
+
+    <div class="card card-custom p-4 mx-auto mt-4" style="max-width: 940px;">
+        <h4 class="fw-bold mb-3" style="color: var(--texto-titulos);">Reseñas de Clientes</h4>
+        {% if resenas %}
+            <div class="row g-3">
+                {% for r in resenas %}
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3 h-100" style="background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="small">{{ r.cliente.nombre }}</strong>
+                                <span class="small fw-bold" style="color: #d9822b;">★ {{ r.calificacion }}/5</span>
+                            </div>
+                            {% if r.comentario %}
+                                <p class="small text-muted mb-1">{{ r.comentario }}</p>
+                            {% endif %}
+                            <small class="text-muted" style="font-size: 0.72rem;">{{ r.fecha|date:"d/m/Y" }}</small>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted small mb-0">Aún no hay reseñas para esta torta. ¡Sé el primero en calificarla tras recibir tu pedido!</p>
+        {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.form-add-cart-detail');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Permitimos el envío normal si el usuario hace clic para ir al carrito,
+            // pero si no quiere recarga o si se añade con botón normal se puede usar fetch.
+            // Dado que el botón dice "Añadir e ir al Carrito", el comportamiento normal redirige directamente a /carrito/
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -1,0 +1,82 @@
+{% extends "pasteleria/base.html" %}
+
+{% block title %}Mi Perfil - Pastelería María Bonita{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card card-custom p-4 p-md-5">
+                <div class="mb-4">
+                    <span class="font-script fs-4" style="color: var(--acento-hover);">Información de cuenta</span>
+                    <h2 class="fw-bold mb-1">Mi Perfil y Dirección de Entrega</h2>
+                    <p class="text-muted small mb-0">Actualice sus datos de contacto y la dirección predeterminada para sus próximos pedidos.</p>
+                </div>
+
+                <form method="POST" action="{% url 'perfil_cliente' %}">
+                    {% csrf_token %}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-bold small">RUT</label>
+                            <input type="text" class="form-control" value="{{ cliente.rut }}" disabled>
+                            <small class="text-muted">El RUT no es editable.</small>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-bold small" for="id_email">Correo Electrónico</label>
+                            <input type="email" id="id_email" name="email" class="form-control" value="{{ cliente.email }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-bold small" for="id_nombre">Nombre</label>
+                            <input type="text" id="id_nombre" name="nombre" class="form-control" value="{{ cliente.nombre }}" required>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-bold small" for="id_apellido">Apellido</label>
+                            <input type="text" id="id_apellido" name="apellido" class="form-control" value="{{ cliente.apellido }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small" for="id_telefono">Teléfono de Contacto</label>
+                        <input type="text" id="id_telefono" name="telefono" class="form-control" value="{{ cliente.telefono }}" placeholder="+569...">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small" for="id_direccion">Dirección Predeterminada de Entrega</label>
+                        <input type="text" id="id_direccion" name="direccion" class="form-control" value="{{ cliente.direccion }}" placeholder="Ej: Av. Principal 123, Depto 402" required>
+                        <small class="text-muted">Esta dirección se cargará automáticamente en sus futuras boletas y tortas personalizadas.</small>
+                    </div>
+
+                    <hr class="my-4" style="border-color: var(--borde-suave);">
+                    <div class="mb-3">
+                        <h5 class="fw-bold mb-1" style="color: var(--texto-titulos);">Cambiar Contraseña (Opcional)</h5>
+                        <p class="text-muted small mb-3">Complete estos campos solo si desea actualizar su contraseña de acceso.</p>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-bold small" for="id_password_actual">Contraseña Actual</label>
+                                <input type="password" id="id_password_actual" name="password_actual" class="form-control" autocomplete="current-password">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label fw-bold small" for="id_password_nueva">Nueva Contraseña</label>
+                                <input type="password" id="id_password_nueva" name="password_nueva" class="form-control" autocomplete="new-password" minlength="4">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label fw-bold small" for="id_password_confirmar">Confirmar Nueva Contraseña</label>
+                                <input type="password" id="id_password_confirmar" name="password_confirmar" class="form-control" autocomplete="new-password" minlength="4">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4">
+                        <a href="{% url 'catalogo' %}" class="btn btn-outline-pastel px-4">Volver al Catálogo</a>
+                        <button type="submit" class="btn btn-custom px-4">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

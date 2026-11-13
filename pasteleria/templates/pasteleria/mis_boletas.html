@@ -4,40 +4,223 @@
 
 {% block content %}
 <div class="container my-5">
-    <h2 class="fw-bold mb-4" style="color: var(--texto-titulos);">📄 Historial de Mis Boletas</h2>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <span class="font-script fs-4" style="color: var(--acento-hover);">Comprobantes de compra</span>
+            <h2 class="fw-bold mb-0">Historial de Mis Boletas</h2>
+        </div>
+        <a href="{% url 'catalogo' %}#productos" class="btn btn-outline-pastel">Ir al Catálogo</a>
+    </div>
 
     {% if boletas %}
         <div class="row g-4">
             {% for boleta in boletas %}
                 <div class="col-md-6">
-                    <div class="card shadow-sm p-3">
-                        <div class="card-body">
-                            <h5 class="card-title fw-bold" style="color: #e5989b;">Boleta #{{ boleta.id }}</h5>
-                            <p class="text-muted small mb-2">Fecha: {{ boleta.fecha|date:"d/m/Y H:i" }}</p>
-                            <hr>
-                            <ul class="list-unstyled">
-                                {% for item in boleta.items.all %}
-                                    <li class="d-flex justify-content-between py-1">
-                                        <span>{{ item.cantidad }}x {{ item.producto_nombre }}</span>
-                                        <span class="text-muted">${{ item.precio_unitario }} c/u</span>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                            <hr>
-                            <div class="d-flex justify-content-between fw-bold">
-                                <span>Total Pagado:</span>
-                                <span style="color: #e5989b;">${{ boleta.total }}</span>
+                    <div class="card card-custom p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="card-title fw-bold mb-0" style="color: var(--acento-hover);">Boleta N° {{ boleta.numero_formateado }}</h5>
+                            {% if boleta.estado == 'En_Revision' %}
+                                <span class="badge-estado badge-estado--pendiente">En Revisión</span>
+                            {% elif boleta.estado == 'En_Preparacion' %}
+                                <span class="badge-estado badge-estado--produccion">En Preparación</span>
+                            {% elif boleta.estado == 'En_Camino' %}
+                                <span class="badge-estado badge-estado--listo">Lista - Va a su domicilio</span>
+                            {% elif boleta.estado == 'Recibida' %}
+                                <span class="badge-estado badge-estado--listo" style="background-color: #c9e8d1; color: #1e592f;">Recibida</span>
+                            {% elif boleta.estado == 'Cancelada' %}
+                                <span class="badge-estado badge-estado--cancelado">Cancelada</span>
+                            {% else %}
+                                <span class="badge badge-stock">{{ boleta.get_estado_display }}</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-muted small mb-1">Fecha: {{ boleta.fecha|date:"d/m/Y H:i" }}</p>
+                        {% if boleta.cliente %}
+                            <p class="text-muted small mb-1">Cliente: {{ boleta.cliente.nombre }} ({{ boleta.cliente.rut }})</p>
+                        {% endif %}
+                        <p class="text-muted small mb-1">Tipo de Compra: <strong>{{ boleta.get_metodo_pago_display }}</strong></p>
+                        <p class="text-muted small mb-2">Modalidad: <strong>{{ boleta.get_tipo_entrega_display }}</strong>{% if boleta.costo_envio %} (+${{ boleta.costo_envio|floatformat:0 }} envío){% endif %}</p>
+
+                        <!-- Dirección de entrega editable mientras no esté en camino ni recibida -->
+                        <div class="p-2 px-3 my-2 rounded-3" style="background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted fw-bold">Dirección de Entrega:</small>
+                                {% if boleta.estado == 'En_Revision' or boleta.estado == 'En_Preparacion' %}
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-bold" style="font-size: 0.8rem; color: var(--acento-hover);" onclick="toggleEditarDireccion({{ boleta.id }})">
+                                        Editar dirección
+                                    </button>
+                                {% elif boleta.estado == 'Cancelada' %}
+                                    <small class="text-muted fst-italic" style="font-size: 0.75rem;">(Cancelada)</small>
+                                {% else %}
+                                    <small class="text-muted fst-italic" style="font-size: 0.75rem;">(Bloqueada - En camino o entregada)</small>
+                                {% endif %}
+                            </div>
+                            <div id="dir-texto-{{ boleta.id }}" class="fw-semibold small mt-1">
+                                {{ boleta.direccion_entrega|default:"Por confirmar" }}
+                            </div>
+
+                            {% if boleta.estado == 'En_Revision' or boleta.estado == 'En_Preparacion' %}
+                                <form id="form-dir-{{ boleta.id }}" action="{% url 'editar_direccion_boleta' boleta.id %}" method="POST" class="mt-2 d-none">
+                                    {% csrf_token %}
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" name="direccion_entrega" class="form-control" value="{{ boleta.direccion_entrega|default:'' }}" placeholder="Ej: Av. Principal 123" required>
+                                        <button type="submit" class="btn btn-custom btn-sm">Guardar</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleEditarDireccion({{ boleta.id }})">Cancelar</button>
+                                    </div>
+                                </form>
+                            {% endif %}
+                        </div>
+
+                        <hr style="border-color: var(--borde-suave);">
+                        <ul class="list-unstyled mb-3">
+                            {% for item in boleta.items.all %}
+                                <li class="d-flex justify-content-between py-1">
+                                    <span class="fw-semibold">{{ item.cantidad }}x {{ item.producto_nombre }}</span>
+                                    <span class="text-muted">${{ item.precio_unitario|floatformat:0 }} c/u</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <hr style="border-color: var(--borde-suave);">
+                        <div class="d-flex justify-content-between align-items-center fw-bold">
+                            <span>Total Pagado:</span>
+                            <span class="price fs-4">${{ boleta.total|floatformat:0 }}</span>
+                        </div>
+
+                        {% if boleta.estado == 'Cancelada' %}
+                            <div class="mt-3 p-3 rounded-3" style="background-color: #fdeaea; border: 1px solid #f5c2c7; color: #842029;">
+                                <div class="fw-bold small mb-1">Cancelada — Se realizará reembolso</div>
+                                {% if boleta.motivo_cancelacion %}
+                                    <div class="small mb-0">
+                                        <strong>Motivo:</strong> {{ boleta.motivo_cancelacion }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <div class="mt-3 pt-2 border-top d-flex flex-wrap justify-content-between align-items-center gap-2" style="border-color: var(--borde-suave) !important;">
+                            <div>
+                                {% if boleta.estado == 'Recibida' %}
+                                    <small class="text-success fw-bold">✓ Pedido recibido conforme</small>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 ms-auto">
+                                {% if boleta.estado != 'Cancelada' %}
+                                    <a href="{% url 'descargar_boleta' boleta.id %}" class="btn btn-sm btn-outline-pastel px-3">
+                                        Descargar Boleta
+                                    </a>
+                                {% endif %}
+                                {% if boleta.estado == 'En_Camino' %}
+                                    <form action="{% url 'confirmar_boleta_recibida' boleta.id %}" method="POST" class="m-0">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-custom px-3">Confirmar Pedido Recibido</button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </div>
+
+                        {% if boleta.estado == 'Recibida' %}
+                            <div class="mt-3 p-3 rounded-3" style="background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);">
+                                {% with resena=boleta.resenas.first %}
+                                    {% if resena %}
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <strong class="small" style="color: var(--texto-titulos);">Tu calificación:</strong>
+                                            <span class="small fw-bold" style="color: #d9822b;">★ {{ resena.calificacion }}/5</span>
+                                        </div>
+                                        {% if resena.comentario %}
+                                            <p class="small text-muted mb-0 fst-italic">"{{ resena.comentario }}"</p>
+                                        {% endif %}
+                                    {% else %}
+                                        <form action="{% url 'crear_resena_boleta' boleta.id %}" method="POST" class="m-0">
+                                            {% csrf_token %}
+                                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                                <label class="small fw-bold mb-0" style="color: var(--texto-titulos);">Califica tu compra:</label>
+                                                <select name="calificacion" class="form-select form-select-sm w-auto">
+                                                    <option value="5">★★★★★ (5)</option>
+                                                    <option value="4">★★★★☆ (4)</option>
+                                                    <option value="3">★★★☆☆ (3)</option>
+                                                    <option value="2">★★☆☆☆ (2)</option>
+                                                    <option value="1">★☆☆☆☆ (1)</option>
+                                                </select>
+                                            </div>
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" name="comentario" class="form-control" placeholder="Escribe un breve comentario (opcional)..." maxlength="500">
+                                                <button type="submit" class="btn btn-custom btn-sm">Enviar Reseña</button>
+                                            </div>
+                                        </form>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <div class="text-center py-5">
-            <p class="text-muted fs-5">Aún no has realizado ninguna compra.</p>
-            <a href="{% url 'catalogo' %}" class="btn btn-outline-secondary mt-2">Ver Catálogo</a>
+        <div class="card card-custom text-center py-5 px-4">
+            <h4 class="mb-2">Aún no registra compras confirmadas</h4>
+            <p class="text-muted mb-4">Agregue sus tortas preferidas al carrito y confirme su compra para consultar sus boletas en esta sección.</p>
+            <div>
+                <a href="{% url 'catalogo' %}" class="btn btn-custom px-4">Ver Catálogo</a>
+            </div>
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleEditarDireccion(id) {
+    const form = document.getElementById(`form-dir-${id}`);
+    const texto = document.getElementById(`dir-texto-${id}`);
+    if (form && texto) {
+        if (form.classList.contains('d-none')) {
+            form.classList.remove('d-none');
+            texto.classList.add('d-none');
+        } else {
+            form.classList.add('d-none');
+            texto.classList.remove('d-none');
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('form[action*="editar-direccion"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+            formData.append('ajax', '1');
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    const card = form.closest('.card') || form.parentElement;
+                    const textoEl = card.querySelector('[id^="dir-texto-"]');
+                    if (textoEl) {
+                        textoEl.textContent = data.direccion_entrega;
+                        textoEl.classList.remove('d-none');
+                    }
+                    form.classList.add('d-none');
+                    if (window.mostrarToast) {
+                        window.mostrarToast('Dirección actualizada', 'La dirección de entrega fue guardada correctamente.');
+                    }
+                } else {
+                    alert(data.message || 'Error al guardar dirección');
+                }
+            })
+            .catch(() => {
+                form.submit();
+            })
+            .finally(() => {
+                if (btn) btn.disabled = false;
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

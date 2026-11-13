@@ -1,69 +1,255 @@
 {% extends 'pasteleria/base.html' %}
 
-{% block content %}
-<style>
-  .card-custom { background-color: var(--tarjetas-contenedores); }
-</style>
+{% block title %}Torta Personalizada - Pastelería María Bonita{% endblock %}
 
-<div class="container my-5">
-  <div class="row justify-content-center">
-    <div class="col-md-8">
-      <div class="card card-custom p-4 shadow-sm">
-        <h2 class="mb-4 text-center">✨ Diseña tu Torta Personalizada ✨</h2>
-        <form method="POST" action="">
-          {% csrf_token %}
-          <div class="mb-3">
-            <label class="form-label font-weight-bold">Tipo de Bizcocho:</label>
-            <select name="bizcocho" class="form-select" required>
-              <option value="">Selecciona una opción</option>
-              <option value="Vainilla">Vainilla Tradicional</option>
-              <option value="Chocolate">Chocolate Suave</option>
-              <option value="Red Velvet">Red Velvet</option>
-              <option value="Nuez">Nuez / Almendras</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Relleno Principal:</label>
-            <input type="text" name="relleno" class="form-control" placeholder="Ej: Manjar, Frutilla, Crema Pastelera" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Cobertura / Decoración:</label>
-            <input type="text" name="cobertura" class="form-control" placeholder="Ej: Chantilly, Ganache de Chocolate, Fondant" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Temática o Notas Especiales:</label>
-            <textarea name="notas" class="form-control" rows="3" placeholder="Detalla temáticas de cumpleaños, colores o dedicatorias..."></textarea>
-          </div>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Fecha de Entrega Requerida:</label>
-              <input type="date" name="fecha_entrega" class="form-control" required>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Hora Estimada:</label>
-              <input type="time" name="hora_entrega" class="form-control" required>
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Precio Estimado ($):</label>
-            <input type="number" id="precio_estimado" name="precio_estimado" class="form-control" value="25000" oninput="calcularAbono()">
-          </div>
-          <div class="abono-box mb-4 text-center">
-            <span>Monto de Abono Obligatorio (25%): </span>
-            <span id="monto_abono" class="text-success">$6.250</span>
-          </div>
-          <button type="submit" class="btn btn-custom w-100 py-2">Enviar Solicitud y Pagar Abono</button>
-        </form>
-      </div>
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <span class="font-script fs-4" style="color: var(--acento-hover);">Repostería a medida</span>
+            <h2 class="mb-0">Solicitar Torta Personalizada</h2>
+        </div>
+        <a href="{% url 'historial_personalizados' %}" class="btn btn-outline-pastel">
+            Ver Historial de Tortas Personalizadas
+            {% if tortas_personalizadas_cantidad > 0 %}
+                <span class="nav-badge-pill ms-1">{{ tortas_personalizadas_cantidad }}</span>
+            {% endif %}
+        </a>
     </div>
-  </div>
+
+    <div class="row g-4 align-items-start">
+        <!-- Formulario de Diseño -->
+        <div class="col-lg-7">
+            <div class="card card-custom p-4 p-md-5" style="background-color: var(--tarjetas-contenedores);">
+                <form method="POST" action="{% url 'pedido_personalizado' %}" id="formTortaPersonalizada" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label">1. Tipo de Bizcocho:</label>
+                        <select name="bizcocho" id="input_bizcocho" class="form-select" required onchange="actualizarVistaPrevia()">
+                            <option value="">Seleccione la base de la torta</option>
+                            <option value="Vainilla Tradicional">Vainilla Tradicional Esponjosa</option>
+                            <option value="Chocolate Suave">Chocolate Suave Belga</option>
+                            <option value="Red Velvet">Red Velvet</option>
+                            <option value="Nuez y Almendras">Nuez y Almendras Tostadas</option>
+                            <option value="Amapola y Limón">Amapola con Toque de Limón</option>
+                            <option value="Hojarasca Tradicional">Hojarasca Tradicional</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">2. Relleno Principal:</label>
+                        <input type="text" name="relleno" id="input_relleno" class="form-control mb-2" placeholder="Ej: Manjar Nuez, Frutilla con Crema, Crema Pastelera" required oninput="actualizarVistaPrevia()">
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="small text-muted me-1 align-self-center">Sugerencias:</span>
+                            <button type="button" class="chip-option" onclick="seleccionarChip('input_relleno', 'Manjar Casero y Nuez')">Manjar y Nuez</button>
+                            <button type="button" class="chip-option" onclick="seleccionarChip('input_relleno', 'Frutillas Frescas con Crema')">Frutilla Crema</button>
+                            <button type="button" class="chip-option" onclick="seleccionarChip('input_relleno', 'Frambuesa y Manjar')">Frambuesa Manjar</button>
+                            <button type="button" class="chip-option" onclick="seleccionarChip('input_relleno', 'Ganache de Chocolate y Guinda')">Ganache y Guinda</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">3. Cobertura y Terminación:</label>
+                        <input type="text" name="cobertura" id="input_cobertura" class="form-control mb-2" placeholder="Ej: Chantilly, Ganache de Chocolate, Fondant" required oninput="actualizarVistaPrevia()">
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="small text-muted me-1 align-self-center">Sugerencias:</span>
+                            <button type="button" class="chip-option" onclick="seleccionarChip('input_cobertura', 'Crema Chantilly Artesanal')">Chantilly</button>
+                            <button type="button" class="chip-option" onclick="seleccionarChip('input_cobertura', 'Buttercream Suizo Pastel')">Buttercream Pastel</button>
+                            <button type="button" class="chip-option" onclick="seleccionarChip('input_cobertura', 'Ganache de Chocolate')">Ganache Chocolate</button>
+                            <button type="button" class="chip-option" onclick="seleccionarChip('input_cobertura', 'Fondant Personalizado')">Fondant</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">4. Temática, Colores o Dedicatoria:</label>
+                        <textarea name="notas" id="input_notas" class="form-control" rows="3" placeholder="Detalle la temática, gama de colores o dedicatoria para la torta..." oninput="actualizarVistaPrevia()"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="input_imagen_ref">4b. Imagen de Referencia (Opcional):</label>
+                        <input type="file" name="imagen_referencia" id="input_imagen_ref" class="form-control" accept="image/*">
+                        <small class="text-muted">Sube una foto de inspiración para ayudar al pastelero con el diseño.</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">5. Fecha de Entrega Requerida:</label>
+                            <input type="date" name="fecha_entrega" id="input_fecha" class="form-control" required onchange="actualizarVistaPrevia()">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">6. Hora Estimada de Retiro/Entrega:</label>
+                            <input type="time" name="hora_entrega" id="input_hora" class="form-control" value="16:00" required onchange="actualizarVistaPrevia()">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="input_tipo_entrega">7. Modalidad de Entrega:</label>
+                        <select name="tipo_entrega" id="input_tipo_entrega" class="form-select mb-2" onchange="toggleEntregaPersonalizado()">
+                            <option value="Domicilio" selected>Despacho a Domicilio (+$3.000 envío)</option>
+                            <option value="Retiro">Retiro en Local (Gratis)</option>
+                        </select>
+                        <div id="bloque_direccion_personalizado">
+                            <label class="form-label small fw-bold" for="input_direccion">Dirección de Entrega a Domicilio:</label>
+                            <input type="text" name="direccion_entrega" id="input_direccion" class="form-control" value="{{ cliente.direccion|default:'' }}" placeholder="Ej: Av. Los Aromos 1234, Depto 402" oninput="actualizarVistaPrevia()">
+                            <small class="text-muted">Podrá modificarla en su historial antes de que el pedido sea despachado.</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">8. Tamaño / Precio Estimado ($):</label>
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            <button type="button" class="chip-option" onclick="fijarPrecio(25000)">15 porciones ($25.000)</button>
+                            <button type="button" class="chip-option" onclick="fijarPrecio(35000)">25 porciones ($35.000)</button>
+                            <button type="button" class="chip-option" onclick="fijarPrecio(45000)">35 porciones ($45.000)</button>
+                        </div>
+                        <input type="number" id="precio_estimado" name="precio_estimado" class="form-control" value="25000" min="10000" step="1000" oninput="calcularAbono()">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="input_metodo_pago">9. Método de Pago del Abono:</label>
+                        <select name="metodo_pago" id="input_metodo_pago" class="form-select" required>
+                            <option value="Debito">Tarjeta de Débito</option>
+                            <option value="Credito">Tarjeta de Crédito</option>
+                            <option value="Transferencia">Transferencia Bancaria</option>
+                            <option value="Efectivo">Efectivo al recibir</option>
+                        </select>
+                    </div>
+
+                    <div class="abono-box mb-4 d-flex flex-wrap justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block">Monto de Abono Requerido (25%):</span>
+                            <small class="fw-normal">El 75% restante se cancela al momento de la entrega.</small>
+                        </div>
+                        <span id="monto_abono" class="fs-3 fw-bold">$6.250</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-custom btn-lg w-100 py-3">
+                        Confirmar Torta Personalizada y Registrar Abono
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Resumen / Vista Previa en Vivo -->
+        <div class="col-lg-5">
+            <div class="cake-preview-card shadow-sm">
+                <div class="text-center mb-3">
+                    <span class="font-script fs-4" style="color: var(--acento-hover);">Detalle de su pedido</span>
+                    <h4 class="mb-1">Resumen de Personalización</h4>
+                    <p class="small text-muted mb-0">Al confirmar, será redirigido automáticamente a su Historial de Tortas Personalizadas.</p>
+                </div>
+
+                <hr style="border-color: var(--borde-suave);">
+
+                <ul class="list-unstyled mb-3">
+                    <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--borde-suave) !important;">
+                        <span class="text-muted fw-semibold">Bizcocho:</span>
+                        <span id="prev_bizcocho" class="fw-bold text-end">Por seleccionar</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--borde-suave) !important;">
+                        <span class="text-muted fw-semibold">Relleno:</span>
+                        <span id="prev_relleno" class="fw-bold text-end">Por definir</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--borde-suave) !important;">
+                        <span class="text-muted fw-semibold">Cobertura:</span>
+                        <span id="prev_cobertura" class="fw-bold text-end">Por definir</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--borde-suave) !important;">
+                        <span class="text-muted fw-semibold">Entrega:</span>
+                        <span id="prev_entrega" class="fw-bold text-end">Por seleccionar</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--borde-suave) !important;">
+                        <span class="text-muted fw-semibold">Dirección:</span>
+                        <span id="prev_direccion" class="fw-bold text-end">{{ cliente.direccion|default:"Por confirmar" }}</span>
+                    </li>
+                    <li class="py-2">
+                        <span class="text-muted fw-semibold d-block mb-1">Notas / Dedicatoria:</span>
+                        <div id="prev_notas" class="p-2 rounded-3 small fst-italic" style="background: rgba(255,255,255,0.75); border: 1px solid var(--borde-suave);">
+                            Sin notas adicionales aún.
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="p-3 rounded-4" style="background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-semibold">Valor Total Estimado:</span>
+                        <span id="prev_total" class="fw-bold">$25.000</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="small fw-bold" style="color: var(--estados-positivos-texto);">Abono 25% a pagar hoy:</span>
+                        <span id="prev_abono" class="fw-bold" style="color: var(--acento-hover);">$6.250</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const inputFecha = document.getElementById('input_fecha');
+    if (inputFecha && !inputFecha.value) {
+      const manana = new Date();
+      manana.setDate(manana.getDate() + 2);
+      inputFecha.value = manana.toISOString().split('T')[0];
+      actualizarVistaPrevia();
+    }
+  });
+
+  function seleccionarChip(inputId, valor) {
+    const el = document.getElementById(inputId);
+    if (el) {
+      el.value = valor;
+      actualizarVistaPrevia();
+    }
+  }
+
+  function fijarPrecio(valor) {
+    const el = document.getElementById('precio_estimado');
+    if (el) {
+      el.value = valor;
+      calcularAbono();
+    }
+  }
+
   function calcularAbono() {
     const precio = parseFloat(document.getElementById('precio_estimado').value) || 0;
-    const abono = precio * 0.25;
-    document.getElementById('monto_abono').innerText = '$' + abono.toLocaleString('es-CL');
+    const abono = Math.round(precio * 0.25);
+    const abonoTexto = '$' + abono.toLocaleString('es-CL');
+    const totalTexto = '$' + Math.round(precio).toLocaleString('es-CL');
+
+    document.getElementById('monto_abono').innerText = abonoTexto;
+    document.getElementById('prev_abono').innerText = abonoTexto;
+    document.getElementById('prev_total').innerText = totalTexto;
+  }
+
+  function actualizarVistaPrevia() {
+    const bizcocho = document.getElementById('input_bizcocho').value || 'Por seleccionar';
+    const relleno = document.getElementById('input_relleno').value || 'Por definir';
+    const cobertura = document.getElementById('input_cobertura').value || 'Por definir';
+    const notas = document.getElementById('input_notas').value || 'Sin notas adicionales aún.';
+    const fecha = document.getElementById('input_fecha').value;
+    const hora = document.getElementById('input_hora').value;
+    const direccion = document.getElementById('input_direccion').value.trim();
+
+    document.getElementById('prev_bizcocho').innerText = bizcocho;
+    document.getElementById('prev_relleno').innerText = relleno;
+    document.getElementById('prev_cobertura').innerText = cobertura;
+    document.getElementById('prev_notas').innerText = notas;
+    document.getElementById('prev_entrega').innerText = fecha ? (fecha + (hora ? ' a las ' + hora + ' hrs' : '')) : 'Por seleccionar';
+    const tipoEntrega = document.getElementById('input_tipo_entrega')?.value || 'Domicilio';
+    document.getElementById('prev_direccion').innerText = tipoEntrega === 'Retiro' ? 'Retiro en Local (Gratis)' : (direccion || 'Por confirmar');
+    calcularAbono();
+  }
+
+  function toggleEntregaPersonalizado() {
+    const tipo = document.getElementById('input_tipo_entrega')?.value || 'Domicilio';
+    const bloque = document.getElementById('bloque_direccion_personalizado');
+    if (bloque) {
+      bloque.classList.toggle('d-none', tipo === 'Retiro');
+    }
+    actualizarVistaPrevia();
   }
 </script>
 {% endblock %}

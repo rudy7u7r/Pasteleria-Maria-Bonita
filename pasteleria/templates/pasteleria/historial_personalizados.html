@@ -1,0 +1,451 @@
+{% extends "pasteleria/base.html" %}
+
+{% block title %}Historial de Tortas Personalizadas - Pastelería María Bonita{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <span class="font-script fs-4" style="color: var(--acento-hover);">Seguimiento de pedidos</span>
+            <h2 class="fw-bold mb-0">Historial de Tortas Personalizadas</h2>
+            <p class="text-muted mb-0">Revise el estado de preparación, abonos y observaciones de sus tortas personalizadas.</p>
+        </div>
+        <a href="{% url 'pedido_personalizado' %}" class="btn btn-custom px-4">
+            Solicitar Nueva Torta Personalizada
+        </a>
+    </div>
+
+    {% if pedidos %}
+        <div class="row g-4">
+            {% for pedido in pedidos %}
+                <div class="col-lg-6">
+                    <div class="card card-custom p-4 h-100 d-flex flex-column">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                            <div>
+                                <h4 class="mb-0 fw-bold">Torta N° P-{{ pedido.id|stringformat:"03d" }}</h4>
+                                <small class="text-muted">Solicitada el {{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                            </div>
+
+                            {% if pedido.estado == 'Pendiente_Coordinacion' %}
+                                <span id="badge-estado-pedido-{{ pedido.id }}" data-estado="{{ pedido.estado }}" class="badge-estado badge-estado--pendiente">{{ pedido.get_estado_display }}</span>
+                            {% elif pedido.estado == 'Aprobado_En_Produccion' %}
+                                <span id="badge-estado-pedido-{{ pedido.id }}" data-estado="{{ pedido.estado }}" class="badge-estado badge-estado--produccion">{{ pedido.get_estado_display }}</span>
+                            {% elif pedido.estado == 'Listo_Para_Entrega' or pedido.estado == 'Entregado' %}
+                                <span id="badge-estado-pedido-{{ pedido.id }}" data-estado="{{ pedido.estado }}" class="badge-estado badge-estado--listo">{{ pedido.get_estado_display }}</span>
+                            {% elif pedido.estado == 'Cancelado' %}
+                                <span id="badge-estado-pedido-{{ pedido.id }}" data-estado="{{ pedido.estado }}" class="badge-estado badge-estado--cancelado">{{ pedido.get_estado_display }}</span>
+                            {% else %}
+                                <span id="badge-estado-pedido-{{ pedido.id }}" data-estado="{{ pedido.estado }}" class="badge-estado">{{ pedido.get_estado_display }}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if pedido.cliente or pedido.personal %}
+                            <div class="d-flex flex-wrap justify-content-between small text-muted mb-2 px-1">
+                                {% if pedido.cliente %}
+                                    <span>Cliente: <strong>{{ pedido.cliente.nombre }} ({{ pedido.cliente.rut }})</strong></span>
+                                {% endif %}
+                                {% if pedido.personal %}
+                                    <span>Pastelero asignado: <strong>{{ pedido.personal.nombre }}</strong></span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <div class="p-3 rounded-4 mb-3" style="background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);">
+                            <div class="row g-2">
+                                <div class="col-sm-6">
+                                    <small class="text-muted d-block fw-bold">Bizcocho</small>
+                                    <span class="fw-bold">{{ pedido.tipo_bizcocho }}</span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <small class="text-muted d-block fw-bold">Relleno Principal</small>
+                                    <span class="fw-bold">{{ pedido.rellenos }}</span>
+                                </div>
+                                <div class="col-sm-6 mt-2">
+                                    <small class="text-muted d-block fw-bold">Cobertura / Decoración</small>
+                                    <span class="fw-bold">{{ pedido.coberturas }}</span>
+                                </div>
+                                <div class="col-sm-6 mt-2">
+                                    <small class="text-muted d-block fw-bold">Fecha de Entrega</small>
+                                    <span class="fw-bold">{{ pedido.fecha_entrega|date:"d/m/Y - H:i" }} hrs</span>
+                                </div>
+                            </div>
+
+                            {% if pedido.notas_decoracion %}
+                                <div class="mt-3 pt-2 border-top" style="border-color: var(--borde-suave) !important;">
+                                    <small class="text-muted d-block fw-bold">Temática y Notas Especiales:</small>
+                                    <p class="mb-0 fst-italic small">{{ pedido.notas_decoracion }}</p>
+                                </div>
+                            {% endif %}
+
+                            {% if pedido.imagen_referencia %}
+                                <div class="mt-3 pt-2 border-top" style="border-color: var(--borde-suave) !important;">
+                                    <small class="text-muted d-block fw-bold mb-1">Imagen de Referencia:</small>
+                                    <a href="{{ pedido.imagen_referencia.url }}" target="_blank" rel="noopener">
+                                        <img src="{{ pedido.imagen_referencia.url }}" alt="Referencia torta" class="img-fluid rounded-3 shadow-sm" style="max-height: 150px; border: 1px solid var(--borde-suave);">
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Dirección de Entrega editable mientras esté en revisión o preparación -->
+                        <div class="p-2 px-3 mb-3 rounded-3" style="background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted fw-bold">Entrega ({{ pedido.get_tipo_entrega_display }}):</small>
+                                {% if pedido.estado == 'Pendiente_Coordinacion' or pedido.estado == 'Aprobado_En_Produccion' %}
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-bold" style="font-size: 0.8rem; color: var(--acento-hover);" onclick="toggleEditarDireccionPedido({{ pedido.id }})">
+                                        Editar dirección
+                                    </button>
+                                {% elif pedido.estado == 'Cancelado' %}
+                                    <small class="text-muted fst-italic" style="font-size: 0.75rem;">(Cancelada)</small>
+                                {% else %}
+                                    <small class="text-muted fst-italic" style="font-size: 0.75rem;">(Bloqueada - En camino o entregada)</small>
+                                {% endif %}
+                            </div>
+                            <div id="dir-pedido-texto-{{ pedido.id }}" class="fw-semibold small mt-1">
+                                {{ pedido.direccion_entrega|default:"Por confirmar" }}
+                            </div>
+
+                            {% if pedido.estado == 'Pendiente_Coordinacion' or pedido.estado == 'Aprobado_En_Produccion' %}
+                                <form id="form-dir-pedido-{{ pedido.id }}" action="{% url 'editar_direccion_pedido_personalizado' pedido.id %}" method="POST" class="mt-2 d-none">
+                                    {% csrf_token %}
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" name="direccion_entrega" class="form-control" value="{{ pedido.direccion_entrega|default:'' }}" placeholder="Ej: Av. Principal 123" required>
+                                        <button type="submit" class="btn btn-custom btn-sm">Guardar</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleEditarDireccionPedido({{ pedido.id }})">Cancelar</button>
+                                    </div>
+                                </form>
+                            {% endif %}
+                        </div>
+
+                        {% if pedido.estado == 'Cancelado' %}
+                            <div class="p-3 rounded-3 mb-3" style="background-color: #fdeaea; border: 1px solid #f5c2c7; color: #842029;">
+                                <div class="fw-bold small mb-1">Cancelada — Se realizará reembolso</div>
+                                {% if pedido.motivo_cancelacion %}
+                                    <div class="small mb-0">
+                                        <strong>Motivo:</strong> {{ pedido.motivo_cancelacion }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Chat de Coordinación con la Pastelería -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="fw-bold" style="color: var(--texto-titulos);">Chat de Coordinación con la Pastelería:</small>
+                                {% if pedido.mensaje_set.count %}
+                                    <span class="badge bg-secondary">{{ pedido.mensaje_set.count }} mensaje{{ pedido.mensaje_set.count|pluralize }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="p-2 rounded-3 mb-2 chat-container" id="chat-container-{{ pedido.id }}" data-pedido-id="{{ pedido.id }}" style="max-height: 220px; overflow-y: auto; background-color: #fffdfb; border: 1px solid var(--borde-suave);">
+                                {% for msg in pedido.mensaje_set.all %}
+                                    <div class="mb-2 d-flex flex-column {% if not msg.personal %}align-items-end{% else %}align-items-start{% endif %}">
+                                        <div class="p-2 px-3 rounded-3 small" style="max-width: 85%; {% if not msg.personal %}background-color: var(--acento-suave); border: 1px solid var(--acento-botones);{% else %}background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);{% endif %}">
+                                            <div class="d-flex justify-content-between align-items-center gap-3 mb-1">
+                                                <strong style="color: var(--texto-titulos);">{% if msg.personal %}{{ msg.personal.nombre }} (Pastelería){% else %}Tú{% endif %}</strong>
+                                                <span class="text-muted" style="font-size: 0.72rem;">{{ msg.fecha_envio|date:"d/m H:i" }}</span>
+                                            </div>
+                                            <div class="text-break">{{ msg.contenido }}</div>
+                                            {% if msg.propuesta_alternativa %}
+                                                <div class="mt-1 p-1 px-2 rounded-2 small" style="background-color: #ffffff; border: 1px dashed var(--acento-botones);">
+                                                    <strong>Propuesta de ajuste:</strong> {{ msg.propuesta_alternativa }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <p class="small text-muted text-center my-2">Sin observaciones o consultas aún. Puede coordinar detalles con el pastelero aquí.</p>
+                                {% endfor %}
+                            </div>
+
+                            {% if pedido.estado != 'Cancelado' and pedido.estado != 'Entregado' %}
+                                <form action="{% url 'enviar_mensaje_pedido' pedido.id %}" method="POST" class="d-flex gap-2 form-chat-ajax" data-pedido-id="{{ pedido.id }}">
+                                    {% csrf_token %}
+                                    <input type="text" name="contenido" class="form-control form-control-sm" placeholder="Escriba un mensaje al pastelero..." required autocomplete="off">
+                                    <button type="submit" class="btn btn-sm btn-custom px-3 text-nowrap">Enviar</button>
+                                </form>
+                            {% endif %}
+                        </div>
+
+                        <!-- Resumen de Abono y Pago (Modelo Pago) -->
+                        <div class="mt-auto pt-2">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center p-3 rounded-3" style="background-color: #fffdfb; border: 1px solid var(--borde-suave);">
+                                <div>
+                                    <span class="small text-muted d-block">Total Estimado: <strong>${{ pedido.precio_total|floatformat:0 }}</strong></span>
+                                    <span class="small text-muted">Saldo pendiente al retirar (75%): <strong>${{ pedido.saldo_pendiente|floatformat:0 }}</strong></span>
+                                </div>
+                                <div class="text-end">
+                                    <span class="small d-block fw-bold" style="color: var(--estados-positivos-texto);">
+                                        Abono (25%) — {{ pedido.get_metodo_pago_display }}
+                                        {% for pago in pedido.pago_set.all %}
+                                            ({{ pago.estado_pago }})
+                                        {% endfor %}
+                                    </span>
+                                    <span class="price fs-4">${{ pedido.monto_abono|floatformat:0 }}</span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+                                <div>
+                                    {% if pedido.estado == 'Entregado' %}
+                                        <small class="text-success fw-bold">✓ Torta recibida conforme</small>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex flex-wrap gap-2 ms-auto">
+                                    {% if pedido.estado != 'Cancelado' %}
+                                        <a href="{% url 'descargar_boleta_personalizada' pedido.id %}" class="btn btn-sm btn-outline-pastel rounded-pill px-3">
+                                            Descargar Boleta
+                                        </a>
+                                    {% endif %}
+                                    {% if pedido.estado == 'Pendiente_Coordinacion' %}
+                                        <form action="{% url 'cancelar_pedido_personalizado' pedido.id %}" method="POST" class="m-0">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                                Cancelar Solicitud
+                                            </button>
+                                        </form>
+                                    {% elif pedido.estado == 'Listo_Para_Entrega' %}
+                                        <form action="{% url 'confirmar_pedido_personalizado_recibido' pedido.id %}" method="POST" class="m-0">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-custom rounded-pill px-3">
+                                                Confirmar Torta Recibida
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if pedido.estado == 'Entregado' %}
+                                <div class="mt-3 p-3 rounded-3" style="background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);">
+                                    {% with resena=pedido.resenas.first %}
+                                        {% if resena %}
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <strong class="small" style="color: var(--texto-titulos);">Tu calificación:</strong>
+                                                <span class="small fw-bold" style="color: #d9822b;">★ {{ resena.calificacion }}/5</span>
+                                            </div>
+                                            {% if resena.comentario %}
+                                                <p class="small text-muted mb-0 fst-italic">"{{ resena.comentario }}"</p>
+                                            {% endif %}
+                                        {% else %}
+                                            <form action="{% url 'crear_resena_pedido' pedido.id %}" method="POST" class="m-0">
+                                                {% csrf_token %}
+                                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                                    <label class="small fw-bold mb-0" style="color: var(--texto-titulos);">Califica tu torta personalizada:</label>
+                                                    <select name="calificacion" class="form-select form-select-sm w-auto">
+                                                        <option value="5">★★★★★ (5)</option>
+                                                        <option value="4">★★★★☆ (4)</option>
+                                                        <option value="3">★★★☆☆ (3)</option>
+                                                        <option value="2">★★☆☆☆ (2)</option>
+                                                        <option value="1">★☆☆☆☆ (1)</option>
+                                                    </select>
+                                                </div>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="text" name="comentario" class="form-control" placeholder="Escribe un breve comentario (opcional)..." maxlength="500">
+                                                    <button type="submit" class="btn btn-custom btn-sm">Enviar Reseña</button>
+                                                </div>
+                                            </form>
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card card-custom text-center py-5 px-4">
+            <h4 class="mb-2">Aún no registra tortas personalizadas en su historial</h4>
+            <p class="text-muted mb-4">Configure el bizcocho, relleno, cobertura y temática para su celebración y su solicitud quedará registrada aquí.</p>
+            <div>
+                <a href="{% url 'pedido_personalizado' %}" class="btn btn-custom btn-lg px-4">Solicitar Torta Personalizada</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleEditarDireccionPedido(id) {
+    const form = document.getElementById('form-dir-pedido-' + id);
+    const texto = document.getElementById('dir-pedido-texto-' + id);
+    if (form && texto) {
+        if (form.classList.contains('d-none')) {
+            form.classList.remove('d-none');
+            texto.classList.add('d-none');
+        } else {
+            form.classList.add('d-none');
+            texto.classList.remove('d-none');
+        }
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function renderizarMensajesCliente(container, mensajes) {
+    if (!container) return;
+    if (!mensajes || mensajes.length === 0) {
+        container.innerHTML = '<p class="small text-muted text-center my-2">Sin observaciones o consultas aún. Puede coordinar detalles con el pastelero aquí.</p>';
+        return;
+    }
+    let html = '';
+    mensajes.forEach(msg => {
+        const esMio = !msg.es_personal; // Para el cliente, sus mensajes son es_personal == false
+        const alignClass = esMio ? 'align-items-end' : 'align-items-start';
+        const bgStyle = esMio 
+            ? 'background-color: var(--acento-suave); border: 1px solid var(--acento-botones);' 
+            : 'background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);';
+
+        let ajusteHtml = '';
+        if (msg.propuesta_alternativa) {
+            ajusteHtml = `<div class="mt-1 p-1 px-2 rounded-2 small" style="background-color: #ffffff; border: 1px dashed var(--acento-botones);">
+                <strong>Propuesta de ajuste:</strong> ${escapeHtml(msg.propuesta_alternativa)}
+            </div>`;
+        }
+
+        const nombreMostrar = esMio ? 'Tú' : escapeHtml(msg.emisor);
+
+        html += `
+        <div class="mb-2 d-flex flex-column ${alignClass}">
+            <div class="p-2 px-3 rounded-3 small" style="max-width: 85%; ${bgStyle}">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-1">
+                    <strong style="color: var(--texto-titulos);">${nombreMostrar}</strong>
+                    <span class="text-muted" style="font-size: 0.72rem;">${msg.fecha}</span>
+                </div>
+                <div class="text-break">${escapeHtml(msg.contenido)}</div>
+                ${ajusteHtml}
+            </div>
+        </div>`;
+    });
+
+    const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 50;
+    if (container.dataset.lastCount != mensajes.length || container.innerHTML.trim() === '') {
+        container.innerHTML = html;
+        container.dataset.lastCount = mensajes.length;
+        if (isAtBottom || !container.dataset.initialized) {
+            container.scrollTop = container.scrollHeight;
+            container.dataset.initialized = '1';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Polling en tiempo real cada 3 segundos para que los mensajes del pastelero aparezcan altiro
+    const chatContainers = document.querySelectorAll('.chat-container[data-pedido-id]');
+    
+    function actualizarChats() {
+        chatContainers.forEach(container => {
+            const pedidoId = container.dataset.pedidoId;
+            fetch('/pedido-personalizado/mensajes/' + pedidoId + '/', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    renderizarMensajesCliente(container, data.mensajes);
+                    // Actualizar insignia de estado en vivo si cambió
+                    const badge = document.getElementById('badge-estado-pedido-' + pedidoId);
+                    if (badge && data.estado && badge.dataset.estado !== data.estado) {
+                        badge.dataset.estado = data.estado;
+                        badge.textContent = data.estado_display || data.estado;
+                        badge.className = 'badge-estado';
+                        if (data.estado === 'Pendiente_Coordinacion') badge.classList.add('badge-estado--pendiente');
+                        else if (data.estado === 'Aprobado_En_Produccion') badge.classList.add('badge-estado--produccion');
+                        else if (data.estado === 'Listo_Para_Entrega' || data.estado === 'Entregado') badge.classList.add('badge-estado--listo');
+                        else if (data.estado === 'Cancelado') badge.classList.add('badge-estado--cancelado');
+
+                        if (window.mostrarToast) {
+                            window.mostrarToast('Estado actualizado', `Tu torta P-${String(pedidoId).padStart(3, '0')} ahora está: <strong>${escapeHtml(data.estado_display || data.estado)}</strong>`);
+                        }
+                    }
+                }
+            })
+            .catch(console.error);
+        });
+    }
+
+    // Primera carga y polling periódico
+    actualizarChats();
+    setInterval(actualizarChats, 3000);
+
+    // 2. Envío de mensaje vía AJAX sin recargar la página
+    document.querySelectorAll('form.form-chat-ajax').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const pedidoId = form.dataset.pedidoId;
+            const chatContainer = document.getElementById('chat-container-' + pedidoId);
+            const input = form.querySelector('input[name="contenido"]');
+            const texto = input ? input.value.trim() : '';
+            if (!texto) return;
+
+            const formData = new FormData(form);
+            formData.append('ajax', '1');
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    if (input) input.value = '';
+                    actualizarChats();
+                } else {
+                    alert(data.message || 'Error al enviar mensaje');
+                }
+            })
+            .catch(() => {
+                form.submit();
+            })
+            .finally(() => {
+                if (btn) btn.disabled = false;
+            });
+        });
+    });
+
+    // 3. Edición de dirección vía AJAX sin recargar la página
+    document.querySelectorAll('form[action*="editar-direccion"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+            formData.append('ajax', '1');
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    const card = form.closest('.card') || form.parentElement;
+                    const textoEl = card.querySelector('[id^="dir-pedido-texto-"]');
+                    if (textoEl) {
+                        textoEl.textContent = data.direccion_entrega;
+                        textoEl.classList.remove('d-none');
+                    }
+                    form.classList.add('d-none');
+                    if (window.mostrarToast) {
+                        window.mostrarToast('Dirección actualizada', 'La dirección de entrega fue guardada correctamente.');
+                    }
+                } else {
+                    alert(data.message || 'Error al guardar dirección');
+                }
+            })
+            .catch(() => {
+                form.submit();
+            })
+            .finally(() => {
+                if (btn) btn.disabled = false;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
