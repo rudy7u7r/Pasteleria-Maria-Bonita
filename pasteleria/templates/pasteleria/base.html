@@ -13,12 +13,36 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" type="image/png" href="{% static 'pasteleria/img/logo.png' %}">
-    <link rel="stylesheet" href="{% static 'pasteleria/css/estilo.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'pasteleria/css/estilo.css' %}?v=16">
     {% block extra_css %}{% endblock %}
+    <script>
+      // Pantalla de carga solo en la primera visita de la sesión del navegador
+      (function () {
+        try {
+          if (!sessionStorage.getItem('mb_carga_vista')) document.documentElement.classList.add('con-carga');
+        } catch (e) { /* sin sessionStorage: no se muestra */ }
+      })();
+    </script>
 </head>
 <body>
+    <div id="pantalla-carga" aria-hidden="true">
+        <div class="carga-contenido">
+            <div class="carga-torta">
+                <img src="{% static 'pasteleria/img/tortas/plato.svg' %}" alt="" class="carga-plato">
+                <img src="{% static 'pasteleria/img/tortas/capa-chocolate.svg' %}" alt="" class="carga-capa" style="--n: 0;">
+                <img src="{% static 'pasteleria/img/tortas/capa-frutilla.svg' %}" alt="" class="carga-capa" style="--n: 1;">
+                <img src="{% static 'pasteleria/img/tortas/capa-vainilla.svg' %}" alt="" class="carga-capa" style="--n: 2;">
+                <img src="{% static 'pasteleria/img/tortas/cubierta-frutillas.svg' %}" alt="" class="carga-capa carga-cubierta" style="--n: 3;">
+            </div>
+            <div class="carga-marca">María Bonita</div>
+            <div class="carga-sub">Pastelería Artesanal</div>
+            <div class="carga-puntos"><span></span><span></span><span></span></div>
+            <div class="carga-texto">Horneando algo dulce para usted…</div>
+        </div>
+    </div>
 
-    <nav class="navbar navbar-expand-lg navbar-pasteleria sticky-top px-3 px-lg-4">
+    <nav class="navbar navbar-expand-lg navbar-pasteleria sticky-top px-3 px-lg-4" id="menu-principal">
+        <span class="menu-linea-color" aria-hidden="true"></span>
         <div class="container-fluid">
             <!-- Marca / Logo -->
             <a class="brand-logo text-decoration-none" href="{% url 'catalogo' %}">
@@ -38,7 +62,7 @@
                 <ul class="navbar-nav mx-auto align-items-lg-center nav-menu-center">
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'catalogo' or request.resolver_match.url_name == 'detalle_producto' %}active-nav{% endif %}" href="{% url 'catalogo' %}">
-                            Catálogo
+                            <svg class="nav-icono" aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16"/><path d="M5 21v-7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7"/><path d="M5 16c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0"/><path d="M12 12V8"/><path d="M12 5.5c.8-.8.8-1.7 0-2.5-.8.8-.8 1.7 0 2.5z"/></svg> Catálogo
                         </a>
                     </li>
 
@@ -46,12 +70,12 @@
                     {% if user.is_authenticated and not user.is_staff %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'pedido_personalizado' %}active-nav{% endif %}" href="{% url 'pedido_personalizado' %}">
-                                Torta Personalizada
+                                <svg class="nav-icono" aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg> Torta Personalizada
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'historial_personalizados' %}active-nav{% endif %}" href="{% url 'historial_personalizados' %}">
-                                Historial Personalizadas
+                                <svg class="nav-icono" aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Historial Personalizadas
                                 {% if tortas_personalizadas_cantidad > 0 %}
                                     <span class="nav-badge-pill">{{ tortas_personalizadas_cantidad }}</span>
                                 {% endif %}
@@ -59,7 +83,7 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'mis_boletas' %}active-nav{% endif %}" href="{% url 'mis_boletas' %}">
-                                Mis Boletas
+                                <svg class="nav-icono" aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg> Mis Boletas
                             </a>
                         </li>
                     {% endif %}
@@ -68,13 +92,13 @@
                     {% if user.is_staff %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'panel_pastelero' %}active-nav{% endif %}" href="{% url 'panel_pastelero' %}">
-                                Panel Interno
+                                <svg class="nav-icono" aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg> Panel Interno
                             </a>
                         </li>
                         {% if staff_rol == 'Administrador' or user.is_superuser %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'gestion_productos' %}active-nav{% endif %}" href="{% url 'gestion_productos' %}">
-                                Gestión de Stock
+                                <svg class="nav-icono" aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg> Gestión de Stock
                             </a>
                         </li>
                         {% endif %}
@@ -85,7 +109,7 @@
                 <div class="d-flex flex-wrap align-items-center gap-2 mt-2 mt-lg-0">
                     {% if not user.is_staff %}
                         <a href="{% url 'ver_carrito' %}" class="btn-cart-nav text-decoration-none {% if request.resolver_match.url_name == 'ver_carrito' %}active-cart{% endif %}">
-                            <span>Mi Carrito</span>
+                            <svg class="nav-icono" aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/></svg><span>Mi Carrito</span>
                             <span class="cart-counter">{{ carrito_cantidad|default:0 }}</span>
                         </a>
                     {% endif %}
@@ -136,6 +160,7 @@
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container" style="z-index: 1090;"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'pasteleria/js/interfaz.js' %}?v=6"></script>
     <script>
       window.mostrarToast = function(titulo, mensaje, urlDestino) {
         const container = document.getElementById('toast-container');
@@ -261,6 +286,101 @@
             });
           });
           obs.observe(mainEl, { childList: true, subtree: true });
+        });
+      })();
+    </script>
+    <script>
+      // Validación de RUT chileno (módulo 11) para cualquier input con data-rut
+      (function() {
+        function limpiarRut(v) { return (v || '').replace(/[^0-9kK]/g, '').toUpperCase(); }
+        function rutValido(v) {
+          const r = limpiarRut(v);
+          if (r.length < 8 || r.length > 9) return false;
+          const cuerpo = r.slice(0, -1), dv = r.slice(-1);
+          if (!/^\d+$/.test(cuerpo) || parseInt(cuerpo, 10) < 1000000) return false;
+          let suma = 0, mul = 2;
+          for (let i = cuerpo.length - 1; i >= 0; i--) {
+            suma += parseInt(cuerpo[i], 10) * mul;
+            mul = mul === 7 ? 2 : mul + 1;
+          }
+          const res = 11 - (suma % 11);
+          const esperado = res === 11 ? '0' : res === 10 ? 'K' : String(res);
+          return esperado === dv;
+        }
+        function formatearRut(v) {
+          const r = limpiarRut(v);
+          if (r.length < 2) return v;
+          const cuerpo = r.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+          return cuerpo + '-' + r.slice(-1);
+        }
+        function revisar(input, marcar) {
+          const v = input.value.trim();
+          const malo = !!v && !rutValido(v);
+          input.setCustomValidity(malo ? 'RUT inválido: revise el número y el dígito verificador.' : '');
+          // Mientras escribe solo se quita la marca roja; se pone al salir del campo o al enviar
+          if (marcar !== false || !malo) input.classList.toggle('is-invalid', malo);
+          return !v || rutValido(v);
+        }
+        // Deja solo dígitos (la K solo como último carácter) y máximo 9 caracteres
+        function normalizarEntrada(v) {
+          let r = limpiarRut(v);
+          const terminaEnK = r.endsWith('K');
+          r = r.replace(/K/g, '').slice(0, terminaEnK ? 8 : 9);
+          return terminaEnK ? r + 'K' : r;
+        }
+        document.querySelectorAll('input[data-rut]').forEach(function(input) {
+          input.setAttribute('maxlength', '12');
+          input.setAttribute('inputmode', 'text');
+          input.setAttribute('autocomplete', 'off');
+          if (input.value.trim()) input.value = formatearRut(normalizarEntrada(input.value));
+          input.addEventListener('input', function() {
+            const r = normalizarEntrada(input.value);
+            input.value = r.length >= 2 ? formatearRut(r) : r;
+            input.setSelectionRange(input.value.length, input.value.length);
+            revisar(input, false);
+          });
+          input.addEventListener('blur', function() { revisar(input); });
+          input.form && input.form.addEventListener('submit', function(e) {
+            if (!revisar(input)) { e.preventDefault(); input.reportValidity(); }
+          });
+        });
+      })();
+    </script>
+    <script>
+      // Teléfono chileno: se formatea solo como +56 9 1234 5678 en inputs con data-telefono
+      (function() {
+        function digitosTel(v) {
+          const t = (v || '').trim();
+          let d = t.replace(/\D/g, '');
+          if (t.startsWith('+56')) d = d.slice(2);
+          else if (d.length > 9 && d.startsWith('56')) d = d.slice(2);
+          return d.slice(0, 9);
+        }
+        function formatearTel(d) {
+          if (!d) return '';
+          return '+56 ' + d[0] + (d.length > 1 ? ' ' + d.slice(1, 5) : '') + (d.length > 5 ? ' ' + d.slice(5) : '');
+        }
+        function telValido(d) { return d.length === 9 && /[2-9]/.test(d[0]); }
+        document.querySelectorAll('input[data-telefono]').forEach(function(input) {
+          input.setAttribute('maxlength', '15');
+          input.setAttribute('inputmode', 'tel');
+          if (!input.placeholder || input.placeholder.indexOf('+56') === 0) input.placeholder = '+56 9 1234 5678';
+          function revisar(marcar) {
+            const d = digitosTel(input.value);
+            const malo = !!d && !telValido(d);
+            input.setCustomValidity(malo ? 'Teléfono inválido: debe tener 9 dígitos, ej: +56 9 1234 5678.' : '');
+            if (marcar || !malo) input.classList.toggle('is-invalid', malo);
+            return !malo;
+          }
+          if (input.value.trim()) input.value = formatearTel(digitosTel(input.value));
+          input.addEventListener('input', function() {
+            input.value = formatearTel(digitosTel(input.value));
+            revisar(false);
+          });
+          input.addEventListener('blur', function() { revisar(true); });
+          input.form && input.form.addEventListener('submit', function(e) {
+            if (!revisar(true)) { e.preventDefault(); input.reportValidity(); }
+          });
         });
       })();
     </script>

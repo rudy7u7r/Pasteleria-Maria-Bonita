@@ -107,7 +107,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Santiago'
 
 USE_I18N = True
 
@@ -126,3 +126,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+# --- Correo electrónico ---
+# Modo evaluación/desarrollo: los correos (ej: recuperar contraseña) se guardan como archivos
+# en la carpeta "correos_enviados/" en vez de enviarse de verdad. Para enviar correos reales,
+# cambie a 'django.core.mail.backends.smtp.EmailBackend' y configure EMAIL_HOST, EMAIL_PORT,
+# EMAIL_HOST_USER, EMAIL_HOST_PASSWORD y EMAIL_USE_TLS.
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+EMAIL_FILE_PATH = BASE_DIR / 'correos_enviados'
+DEFAULT_FROM_EMAIL = 'Pastelería María Bonita <no-responder@mariabonita.cl>'
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24  # El enlace para cambiar la contraseña dura 24 horas

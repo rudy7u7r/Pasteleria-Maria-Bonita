@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 112" role="img" aria-label="Capa de bizcocho de chocolate con ganache">
+  <defs>
+    <linearGradient id="lado" x1="0" x2="1">
+      <stop offset="0" stop-color="#5b3426"/><stop offset=".45" stop-color="#8a5640"/><stop offset="1" stop-color="#4e2b1f"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="100" cy="82" rx="92" ry="20" fill="#47261b"/>
+  <rect x="8" y="28" width="184" height="54" fill="url(#lado)"/>
+  <path d="M8 52 Q100 94 192 52 L192 60 Q100 102 8 60 Z" fill="#f3d2c4" opacity=".9"/>
+  <path d="M8 28 L8 40 Q14 52 20 40 Q26 60 34 44 Q40 54 48 48 Q56 72 64 52 Q72 60 80 54 Q88 76 98 56 Q106 62 114 56 Q122 78 130 54 Q138 60 146 50 Q154 68 162 46 Q170 54 176 42 Q184 58 192 40 L192 28 Z" fill="#3b1f16"/>
+  <ellipse cx="100" cy="28" rx="92" ry="20" fill="#43241a"/>
+  <ellipse cx="78" cy="22" rx="30" ry="5" fill="#fff" opacity=".18"/>
+</svg>

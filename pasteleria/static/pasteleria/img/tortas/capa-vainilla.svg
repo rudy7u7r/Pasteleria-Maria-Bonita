@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 104" role="img" aria-label="Capa de bizcocho de vainilla">
+  <defs>
+    <linearGradient id="lado" x1="0" x2="1">
+      <stop offset="0" stop-color="#e3ad66"/><stop offset=".45" stop-color="#f7d79f"/><stop offset="1" stop-color="#d89c55"/>
+    </linearGradient>
+    <linearGradient id="crema" x1="0" x2="1">
+      <stop offset="0" stop-color="#f6e2cf"/><stop offset=".5" stop-color="#fffaf3"/><stop offset="1" stop-color="#f1dcc6"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="100" cy="80" rx="92" ry="20" fill="#cf9150"/>
+  <rect x="8" y="28" width="184" height="52" fill="url(#lado)"/>
+  <path d="M8 50 Q100 92 192 50 L192 60 Q100 102 8 60 Z" fill="url(#crema)"/>
+  <ellipse cx="100" cy="28" rx="92" ry="20" fill="#fbe5bd"/>
+  <ellipse cx="100" cy="28" rx="76" ry="14" fill="#f7dcaa" opacity=".6"/>
+  <g fill="#e8bf7f" opacity=".7">
+    <circle cx="62" cy="24" r="2.2"/><circle cx="118" cy="20" r="1.8"/><circle cx="140" cy="32" r="2"/>
+    <circle cx="86" cy="36" r="1.6"/><circle cx="104" cy="28" r="2.4"/><circle cx="48" cy="32" r="1.5"/>
+  </g>
+</svg>

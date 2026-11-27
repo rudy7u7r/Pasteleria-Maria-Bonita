@@ -1,14 +1,28 @@
 {% extends "pasteleria/base.html" %}
+{% load static %}
 
 {% block title %}Catálogo - Pastelería María Bonita{% endblock %}
 
 {% block content %}
 <section class="hero-banner" aria-labelledby="hero-title">
+    <div class="hero-decoracion" aria-hidden="true">
+        <img src="{% static 'pasteleria/img/tortas/capa-frutilla.svg' %}"      class="capa-voladora" style="--x: 3%;  --y: 10%; --w: 120px; --r: -14deg; --d: 0s;   --t: 7s;"   alt="">
+        <img src="{% static 'pasteleria/img/tortas/capa-chocolate.svg' %}"     class="capa-voladora" style="--x: 82%; --y: 6%;  --w: 130px; --r: 12deg;  --d: 1.1s; --t: 8s;"   alt="">
+        <img src="{% static 'pasteleria/img/tortas/capa-vainilla.svg' %}"      class="capa-voladora" style="--x: 5%;  --y: 64%; --w: 110px; --r: 10deg;  --d: 2s;   --t: 9s;"   alt="">
+        <img src="{% static 'pasteleria/img/tortas/cubierta-frutillas.svg' %}" class="capa-voladora" style="--x: 84%; --y: 62%; --w: 120px; --r: -10deg; --d: 0.6s; --t: 7.5s;" alt="">
+        <img src="{% static 'pasteleria/img/tortas/rebanada.svg' %}"           class="capa-voladora solo-grande" style="--x: 3%;  --y: 36%; --w: 90px; --r: -6deg; --d: 1.6s; --t: 8.5s;" alt="">
+        <img src="{% static 'pasteleria/img/tortas/torta-completa.svg' %}"     class="capa-voladora solo-grande" style="--x: 86%; --y: 30%; --w: 96px; --r: 4deg;  --d: 2.4s; --t: 9.5s;" alt="">
+    </div>
     <div class="hero-content">
-        <span class="hero-eyebrow">Recetas tradicionales recién horneadas</span>
-        <h1 class="hero-title" id="hero-title">Un pedacito de felicidad</h1>
-        <p class="hero-description">Tortas artesanales elaboradas cada día con ingredientes seleccionados para acompañar sus celebraciones.</p>
-        <div class="d-flex flex-wrap justify-content-center gap-3">
+        <span class="hero-eyebrow hero-paso" style="--paso: 0;">Recetas tradicionales recién horneadas</span>
+        <h1 class="hero-title hero-paso" id="hero-title" style="--paso: 1;">Un pedacito de <span class="texto-brillo">felicidad</span></h1>
+        <p class="hero-description hero-paso" style="--paso: 2;">Tortas artesanales elaboradas cada día con ingredientes seleccionados para acompañar sus celebraciones.</p>
+        <div class="hero-beneficios hero-paso" style="--paso: 3;">
+            <span>Hecho a mano</span>
+            <span>Despacho a domicilio</span>
+            <span>Tortas a pedido</span>
+        </div>
+        <div class="d-flex flex-wrap justify-content-center gap-3 hero-paso" style="--paso: 4;">
             <a class="btn btn-custom btn-lg px-4" href="#productos">Ver Catálogo</a>
             {% if user.is_authenticated and not user.is_staff %}
                 <a class="btn btn-outline-pastel btn-lg px-4" href="{% url 'pedido_personalizado' %}">Solicitar Torta Personalizada</a>
@@ -46,7 +60,7 @@
         </form>
     </div>
 
-    <div class="row g-3" id="grid-productos">
+    <div class="row g-3" id="grid-productos" data-paginar="12" data-paginar-etiqueta="productos">
         {% for producto in productos %}
         <div class="col-sm-6 col-md-4 col-lg-3 producto-item"
              data-nombre="{{ producto.nombre|lower }}"
@@ -59,7 +73,7 @@
                     {% if producto.img %}
                         <img src="{{ producto.img.url }}" alt="{{ producto.nombre }}">
                     {% else %}
-                        <div class="product-art" role="img" aria-label="Ilustración">🍰</div>
+                        <div class="product-art"><img src="{% static 'pasteleria/img/tortas/torta-completa.svg' %}" alt="Ilustración de torta" class="product-art-img"></div>
                     {% endif %}
                 </a>
 

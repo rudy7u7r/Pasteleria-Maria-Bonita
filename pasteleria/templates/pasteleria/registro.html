@@ -39,11 +39,11 @@
 
                     <div class="col-md-6">
                         <label class="form-label">RUT (Ficha Cliente)</label>
-                        <input type="text" name="rut" class="form-control" maxlength="12" value="{{ valores.rut|default:'' }}" placeholder="Ej: 18.345.678-9">
+                        <input type="text" name="rut" data-rut class="form-control" maxlength="12" value="{{ valores.rut|default:'' }}" placeholder="Ej: 18.345.678-9">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Teléfono de Contacto</label>
-                        <input type="text" name="telefono" class="form-control" maxlength="15" value="{{ valores.telefono|default:'' }}" placeholder="Ej: +56912345678">
+                        <input type="text" name="telefono" data-telefono class="form-control" maxlength="15" value="{{ valores.telefono|default:'' }}" placeholder="Ej: +56 9 1234 5678">
                     </div>
 
                     <div class="col-12">
@@ -53,11 +53,11 @@
 
                     <div class="col-md-6">
                         <label class="form-label">Contraseña *</label>
-                        <input type="password" name="password1" class="form-control" required minlength="4" placeholder="Mínimo 4 caracteres">
+                        <input type="password" name="password1" class="form-control" required minlength="8" placeholder="Mínimo 8 caracteres">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Confirmar Contraseña *</label>
-                        <input type="password" name="password2" class="form-control" required minlength="4" placeholder="Repita la contraseña">
+                        <input type="password" name="password2" class="form-control" required minlength="8" placeholder="Repita la contraseña">
                     </div>
                 </div>
 

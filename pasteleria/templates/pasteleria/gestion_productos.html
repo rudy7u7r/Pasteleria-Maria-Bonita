@@ -22,7 +22,7 @@
                     <th>Stock Actual (Máx 5)</th><th>Acciones (CRUD / Reposición)</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginar="10" data-paginar-etiqueta="productos">
                 {% for producto in productos %}
                 <tr>
                     <td class="fw-bold">{{ producto.id }}</td>

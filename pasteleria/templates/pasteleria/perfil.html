@@ -41,7 +41,7 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold small" for="id_telefono">Teléfono de Contacto</label>
-                        <input type="text" id="id_telefono" name="telefono" class="form-control" value="{{ cliente.telefono }}" placeholder="+569...">
+                        <input type="text" id="id_telefono" name="telefono" data-telefono class="form-control" value="{{ cliente.telefono }}" placeholder="+569...">
                     </div>
 
                     <div class="mb-4">
@@ -61,11 +61,11 @@
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label fw-bold small" for="id_password_nueva">Nueva Contraseña</label>
-                                <input type="password" id="id_password_nueva" name="password_nueva" class="form-control" autocomplete="new-password" minlength="4">
+                                <input type="password" id="id_password_nueva" name="password_nueva" class="form-control" autocomplete="new-password" minlength="8">
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label fw-bold small" for="id_password_confirmar">Confirmar Nueva Contraseña</label>
-                                <input type="password" id="id_password_confirmar" name="password_confirmar" class="form-control" autocomplete="new-password" minlength="4">
+                                <input type="password" id="id_password_confirmar" name="password_confirmar" class="form-control" autocomplete="new-password" minlength="8">
                             </div>
                         </div>
                     </div>

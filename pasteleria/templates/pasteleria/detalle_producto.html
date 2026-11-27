@@ -1,4 +1,5 @@
 {% extends "pasteleria/base.html" %}
+{% load static %}
 
 {% block title %}{{ producto.nombre }} - Pastelería María Bonita{% endblock %}
 
@@ -11,7 +12,7 @@
             {% if producto.img %}
                 <img src="{{ producto.img.url }}" class="img-fluid rounded-4 shadow-sm" alt="{{ producto.nombre }}" style="max-height: 400px; object-fit: cover; width: 100%; border: 2px solid var(--borde-suave);">
             {% else %}
-                <div class="product-art rounded-4 shadow-sm d-flex align-items-center justify-content-center mx-auto" style="height: 320px; font-size: 5rem;">🍰</div>
+                <div class="product-art rounded-4 shadow-sm d-flex align-items-center justify-content-center mx-auto" style="height: 320px;"><img src="{% static 'pasteleria/img/tortas/torta-completa.svg' %}" alt="Ilustración de torta" class="product-art-img" style="width: 220px;"></div>
             {% endif %}
         </div>
 
@@ -57,7 +58,7 @@
     <div class="card card-custom p-4 mx-auto mt-4" style="max-width: 940px;">
         <h4 class="fw-bold mb-3" style="color: var(--texto-titulos);">Reseñas de Clientes</h4>
         {% if resenas %}
-            <div class="row g-3">
+            <div class="row g-3" data-paginar="6" data-paginar-etiqueta="reseñas">
                 {% for r in resenas %}
                     <div class="col-md-6">
                         <div class="p-3 rounded-3 h-100" style="background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);">

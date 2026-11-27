@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 170" role="img" aria-label="Rebanada de torta">
+  <defs>
+    <linearGradient id="caraA" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#f7d79f"/><stop offset="1" stop-color="#e3ad66"/>
+    </linearGradient>
+    <linearGradient id="caraB" x1="0" x2="1">
+      <stop offset="0" stop-color="#f1c98a"/><stop offset="1" stop-color="#d89c55"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="104" cy="152" rx="88" ry="12" fill="#563842" opacity=".12"/>
+  <polygon points="20,70 120,104 120,150 20,116" fill="url(#caraA)"/>
+  <polygon points="20,86 120,120 120,128 20,94" fill="#fff6ee"/>
+  <polygon points="20,100 120,134 120,140 20,106" fill="#e88aa2"/>
+  <polygon points="120,104 184,64 184,110 120,150" fill="url(#caraB)"/>
+  <polygon points="120,120 184,80 184,88 120,128" fill="#fff6ee"/>
+  <polygon points="120,134 184,94 184,100 120,140" fill="#e88aa2"/>
+  <polygon points="20,70 120,104 184,64 84,40" fill="#fff3ee"/>
+  <path d="M20 70 Q30 82 40 76 Q52 90 64 82 Q76 96 88 88 Q100 102 112 96 L120 104 L120 112 Q108 116 100 108 Q88 110 82 100 Q70 102 64 92 Q52 94 46 86 Q34 88 30 80 Q22 82 20 76 Z" fill="#fffaf6"/>
+  <path d="M120 104 Q132 108 140 96 Q150 98 156 88 Q166 88 172 78 Q180 76 184 64 L184 72 Q178 86 168 88 Q162 98 152 98 Q144 108 134 108 Q126 116 120 112 Z" fill="#fffaf6"/>
+  <path d="M100 40 C116 40 118 56 100 74 C82 56 84 40 100 40 Z" fill="#d8304a"/>
+  <path d="M90 42 L100 32 L110 42 L104 44 L100 38 L96 44 Z" fill="#4f9a4a"/>
+  <g fill="#ffe08a"><circle cx="95" cy="52" r="1.3"/><circle cx="105" cy="52" r="1.3"/><circle cx="100" cy="60" r="1.3"/></g>
+</svg>

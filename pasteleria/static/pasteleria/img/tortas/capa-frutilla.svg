@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 104" role="img" aria-label="Capa de bizcocho de frutilla">
+  <defs>
+    <linearGradient id="lado" x1="0" x2="1">
+      <stop offset="0" stop-color="#e98aa3"/><stop offset=".45" stop-color="#f9c3d0"/><stop offset="1" stop-color="#de7690"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="100" cy="80" rx="92" ry="20" fill="#d36883"/>
+  <rect x="8" y="28" width="184" height="52" fill="url(#lado)"/>
+  <path d="M8 50 Q100 92 192 50 L192 60 Q100 102 8 60 Z" fill="#fff6f8"/>
+  <g fill="#c9394f">
+    <ellipse cx="40" cy="64" rx="5" ry="3.5"/><ellipse cx="78" cy="74" rx="5" ry="3.5"/>
+    <ellipse cx="120" cy="74" rx="5" ry="3.5"/><ellipse cx="160" cy="64" rx="5" ry="3.5"/>
+  </g>
+  <ellipse cx="100" cy="28" rx="92" ry="20" fill="#fcd6df"/>
+  <ellipse cx="100" cy="28" rx="74" ry="13" fill="#f9c4d1" opacity=".6"/>
+</svg>

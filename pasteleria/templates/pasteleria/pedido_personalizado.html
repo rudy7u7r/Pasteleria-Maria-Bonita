@@ -76,12 +76,20 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">5. Fecha de Entrega Requerida:</label>
                             <input type="date" name="fecha_entrega" id="input_fecha" class="form-control" required onchange="actualizarVistaPrevia()">
+                            <small class="text-muted">Mínimo {{ reglas_agenda.anticipacion_dias }} días de anticipación · máximo {{ reglas_agenda.cupo_diario }} tortas por día.</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">6. Hora Estimada de Retiro/Entrega:</label>
-                            <input type="time" name="hora_entrega" id="input_hora" class="form-control" value="16:00" required onchange="actualizarVistaPrevia()">
+                            <input type="time" name="hora_entrega" id="input_hora" class="form-control" value="16:00"
+                                   min="{{ reglas_agenda.hora_apertura|stringformat:'02d' }}:00" max="{{ reglas_agenda.hora_cierre|stringformat:'02d' }}:00" step="900"
+                                   required onchange="actualizarVistaPrevia()">
+                            <small class="text-muted">Horario de entrega: {{ reglas_agenda.hora_apertura|stringformat:'02d' }}:00 a {{ reglas_agenda.hora_cierre|stringformat:'02d' }}:00 hrs.</small>
+                        </div>
+                        <div class="col-12">
+                            <div id="aviso_fecha" class="alert alert-warning py-2 small d-none" role="alert"></div>
                         </div>
                     </div>
+                    {{ reglas_agenda|json_script:"reglas-agenda" }}
 
                     <div class="mb-3">
                         <label class="form-label" for="input_tipo_entrega">7. Modalidad de Entrega:</label>
@@ -187,15 +195,79 @@
 </div>
 
 <script>
+  const REGLAS = JSON.parse(document.getElementById('reglas-agenda').textContent);
+
   document.addEventListener('DOMContentLoaded', function() {
     const inputFecha = document.getElementById('input_fecha');
-    if (inputFecha && !inputFecha.value) {
-      const manana = new Date();
-      manana.setDate(manana.getDate() + 2);
-      inputFecha.value = manana.toISOString().split('T')[0];
+    const inputHora = document.getElementById('input_hora');
+    if (inputFecha) {
+      // Primera fecha posible = hoy + días de anticipación (no se permiten fechas pasadas)
+      const primerDia = new Date();
+      primerDia.setDate(primerDia.getDate() + REGLAS.anticipacion_dias);
+      inputFecha.min = fechaLocalISO(primerDia);
+      if (!inputFecha.value) {
+        // Proponer el primer día disponible que tenga cupo
+        const propuesta = new Date(primerDia);
+        for (let i = 0; i < 120 && REGLAS.fechas_sin_cupo.includes(fechaLocalISO(propuesta)); i++) {
+          propuesta.setDate(propuesta.getDate() + 1);
+        }
+        inputFecha.value = fechaLocalISO(propuesta);
+      }
+      inputFecha.addEventListener('change', validarFechaHoraEntrega);
+      inputHora && inputHora.addEventListener('change', validarFechaHoraEntrega);
       actualizarVistaPrevia();
+
+      const form = inputFecha.closest('form');
+      form && form.addEventListener('submit', function(e) {
+        if (!validarFechaHoraEntrega()) {
+          e.preventDefault();
+          (inputFecha.validationMessage ? inputFecha : inputHora).reportValidity();
+        }
+      });
+      validarFechaHoraEntrega();
     }
   });
+
+  function fechaLocalISO(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  function validarFechaHoraEntrega() {
+    const inputFecha = document.getElementById('input_fecha');
+    const inputHora = document.getElementById('input_hora');
+    const aviso = document.getElementById('aviso_fecha');
+    const pad = n => String(n).padStart(2, '0');
+    let errorFecha = '', errorHora = '';
+    inputFecha.setCustomValidity('');
+    inputHora.setCustomValidity('');
+
+    if (inputFecha.value) {
+      if (inputFecha.value < inputFecha.min) {
+        const [a, m, d] = inputFecha.min.split('-');
+        errorFecha = 'Las tortas se piden con al menos ' + REGLAS.anticipacion_dias +
+          ' días de anticipación. La primera fecha disponible es el ' + d + '/' + m + '/' + a + '.';
+      } else if (REGLAS.fechas_sin_cupo.includes(inputFecha.value)) {
+        errorFecha = 'Ese día ya tiene sus ' + REGLAS.cupo_diario + ' tortas agendadas. Por favor elija otra fecha.';
+      }
+    }
+    if (inputHora.value) {
+      const [h, mi] = inputHora.value.split(':').map(Number);
+      const minutos = h * 60 + mi;
+      if (minutos < REGLAS.hora_apertura * 60 || minutos > REGLAS.hora_cierre * 60) {
+        errorHora = 'El horario de entrega es de ' + pad(REGLAS.hora_apertura) + ':00 a ' + pad(REGLAS.hora_cierre) + ':00 hrs.';
+      }
+    }
+
+    inputFecha.setCustomValidity(errorFecha);
+    inputHora.setCustomValidity(errorHora);
+    inputFecha.classList.toggle('is-invalid', !!errorFecha);
+    inputHora.classList.toggle('is-invalid', !!errorHora);
+    const texto = [errorFecha, errorHora].filter(Boolean).join(' ');
+    aviso.textContent = texto;
+    aviso.classList.toggle('d-none', !texto);
+    return !texto;
+  }
 
   function seleccionarChip(inputId, valor) {
     const el = document.getElementById(inputId);

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 110" role="img" aria-label="Cubierta de crema con frutillas">
+  <defs>
+    <radialGradient id="fresa" cx=".4" cy=".35" r=".7">
+      <stop offset="0" stop-color="#ff6b7d"/><stop offset="1" stop-color="#c41f38"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="100" cy="74" rx="92" ry="22" fill="#fff3ee"/>
+  <path d="M8 74 Q8 90 22 92 Q30 100 40 92 Q50 104 62 94 Q74 106 86 96 Q100 108 114 96 Q126 106 138 94 Q150 104 160 92 Q170 100 178 92 Q192 90 192 74 Z" fill="#fffaf6"/>
+  <g fill="#fffdfb" stroke="#f3d7d2" stroke-width="1.2">
+    <circle cx="30" cy="72" r="9"/><circle cx="56" cy="82" r="9"/><circle cx="84" cy="87" r="9"/>
+    <circle cx="116" cy="87" r="9"/><circle cx="144" cy="82" r="9"/><circle cx="170" cy="72" r="9"/>
+    <circle cx="48" cy="62" r="8"/><circle cx="152" cy="62" r="8"/>
+  </g>
+  <g fill="#fff" opacity=".8">
+    <circle cx="27" cy="68" r="2.5"/><circle cx="53" cy="78" r="2.5"/><circle cx="81" cy="83" r="2.5"/>
+    <circle cx="113" cy="83" r="2.5"/><circle cx="141" cy="78" r="2.5"/><circle cx="167" cy="68" r="2.5"/>
+  </g>
+  <path d="M72 42 C86 42 88 56 72 72 C56 56 58 42 72 42 Z" fill="url(#fresa)" transform="rotate(-12 72 57)"/>
+  <path d="M100 32 C116 32 118 48 100 66 C82 48 84 32 100 32 Z" fill="url(#fresa)"/>
+  <path d="M128 42 C142 42 144 56 128 72 C112 56 114 42 128 42 Z" fill="url(#fresa)" transform="rotate(12 128 57)"/>
+  <path d="M90 34 L100 24 L110 34 L104 36 L100 30 L96 36 Z" fill="#4f9a4a"/>
+  <g fill="#ffe08a">
+    <circle cx="95" cy="44" r="1.2"/><circle cx="105" cy="44" r="1.2"/><circle cx="100" cy="52" r="1.2"/>
+    <circle cx="68" cy="54" r="1.1"/><circle cx="75" cy="60" r="1.1"/><circle cx="125" cy="54" r="1.1"/><circle cx="132" cy="60" r="1.1"/>
+  </g>
+</svg>

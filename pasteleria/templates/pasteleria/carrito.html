@@ -1,4 +1,5 @@
 {% extends "pasteleria/base.html" %}
+{% load static %}
 
 {% block title %}Mi Carrito de Compras - Pastelería María Bonita{% endblock %}
 
@@ -23,14 +24,14 @@
     {% if productos_carrito %}
         <div class="card card-custom p-3 p-md-4 mb-4">
             <div class="table-responsive">
-                <table class="table align-middle mb-0">
+                <table class="table table-custom align-middle mb-0 tabla-carrito">
                     <thead>
-                        <tr style="border-bottom: 2px solid var(--borde-suave);">
-                            <th>Producto</th>
-                            <th>Precio Unitario</th>
-                            <th class="text-center">Cantidad</th>
-                            <th>Subtotal</th>
-                            <th class="text-end">Quitar</th>
+                        <tr>
+                            <th style="width: 42%;">Producto</th>
+                            <th class="text-end" style="width: 16%;">Precio Unitario</th>
+                            <th class="text-center" style="width: 16%;">Cantidad</th>
+                            <th class="text-end" style="width: 14%;">Subtotal</th>
+                            <th class="text-end" style="width: 12%;"><span class="visually-hidden">Quitar</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -41,7 +42,7 @@
                                         {% if item.producto.img %}
                                             <img src="{{ item.producto.img.url }}" alt="{{ item.producto.nombre }}" style="width: 60px; height: 60px; object-fit: cover;" class="rounded-3 border">
                                         {% else %}
-                                            <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; background: var(--tarjetas-contenedores); font-size: 1.6rem;">🍰</div>
+                                            <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; background: var(--tarjetas-contenedores);"><img src="{% static 'pasteleria/img/tortas/torta-completa.svg' %}" alt="" style="width: 46px;"></div>
                                         {% endif %}
                                         <div>
                                             <a href="{% url 'detalle_producto' item.producto.id %}" class="fw-bold text-decoration-none" style="color: var(--texto-titulos); font-size: 1.05rem;">
@@ -51,7 +52,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="fw-semibold">${{ item.producto.precio_final|floatformat:0 }}</td>
+                                <td class="fw-semibold text-end">${{ item.producto.precio_final|floatformat:0 }}</td>
                                 <td class="text-center">
                                     <div class="d-inline-flex align-items-center gap-2">
                                         <button type="button" class="qty-btn btn-cart-ajax" data-url="{% url 'restar_del_carrito' item.producto.id %}" data-id="{{ item.producto.id }}" data-action="restar" title="Disminuir cantidad">−</button>
@@ -59,7 +60,7 @@
                                         <button type="button" class="qty-btn btn-cart-ajax" data-url="{% url 'agregar_al_carrito' item.producto.id %}" data-id="{{ item.producto.id }}" data-action="sumar" title="Aumentar cantidad">+</button>
                                     </div>
                                 </td>
-                                <td class="fw-bold subtotal-val-{{ item.producto.id }}" style="color: var(--acento-hover);">${{ item.subtotal|floatformat:0 }}</td>
+                                <td class="fw-bold text-end subtotal-val-{{ item.producto.id }}" style="color: var(--acento-hover);">${{ item.subtotal|floatformat:0 }}</td>
                                 <td class="text-end">
                                     <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 btn-cart-ajax" data-url="{% url 'eliminar_del_carrito' item.producto.id %}" data-id="{{ item.producto.id }}" data-action="eliminar">Quitar</button>
                                 </td>
@@ -69,40 +70,57 @@
                 </table>
             </div>
 
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mt-4 p-4 rounded-4 gap-3" style="background-color: var(--tarjetas-contenedores); border: 1px solid var(--borde-suave);">
-                <div>
-                    <span class="text-muted d-block small fw-bold text-uppercase">Total del pedido</span>
-                    <h3 class="mb-0">Total a Pagar: <span class="price fs-2 total-carrito-val" data-base-total="{{ total_carrito|floatformat:0 }}">${{ total_carrito|add:3000|floatformat:0 }}</span></h3>
-                    <small class="text-muted" id="resumen-envio-carrito">Incluye $3.000 de despacho a domicilio (puedes elegir retiro gratis).</small>
-                </div>
-
+            <div class="resumen-pedido mt-4">
                 {% if user.is_authenticated %}
-                    <form id="form-confirmar-compra" action="{% url 'procesar_compra' %}" method="POST" class="m-0 d-flex flex-column flex-sm-row align-items-sm-end gap-2">
+                    <form id="form-confirmar-compra" action="{% url 'procesar_compra' %}" method="POST" class="row g-4 align-items-stretch m-0">
                         {% csrf_token %}
-                        <div>
-                            <label class="form-label small fw-bold mb-1" for="tipo_entrega_carrito">Entrega:</label>
-                            <select name="tipo_entrega" id="tipo_entrega_carrito" class="form-select" style="min-width: 210px;" required>
-                                <option value="Domicilio" selected>Despacho a Domicilio (+$3.000)</option>
-                                <option value="Retiro">Retiro en Local (Gratis)</option>
-                            </select>
+                        <div class="col-lg-7 ps-lg-0">
+                            <h6 class="resumen-titulo">Opciones de entrega y pago</h6>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label small fw-bold mb-1" for="tipo_entrega_carrito">Entrega</label>
+                                    <select name="tipo_entrega" id="tipo_entrega_carrito" class="form-select" required>
+                                        <option value="Domicilio" selected>A domicilio (+$3.000)</option>
+                                        <option value="Retiro">Retiro en local (gratis)</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label small fw-bold mb-1" for="metodo_pago_carrito">Método de pago</label>
+                                    <select name="metodo_pago" id="metodo_pago_carrito" class="form-select" required>
+                                        <option value="Debito">Tarjeta de Débito</option>
+                                        <option value="Credito">Tarjeta de Crédito</option>
+                                        <option value="Transferencia">Transferencia Bancaria</option>
+                                        <option value="Efectivo">Efectivo al recibir</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-3" id="resumen-envio-carrito">Incluye $3.000 de despacho a domicilio (puedes elegir retiro gratis).</small>
                         </div>
-                        <div>
-                            <label class="form-label small fw-bold mb-1" for="metodo_pago_carrito">Método de Pago:</label>
-                            <select name="metodo_pago" id="metodo_pago_carrito" class="form-select" style="min-width: 200px;" required>
-                                <option value="Debito">Tarjeta de Débito</option>
-                                <option value="Credito">Tarjeta de Crédito</option>
-                                <option value="Transferencia">Transferencia Bancaria</option>
-                                <option value="Efectivo">Efectivo al recibir</option>
-                            </select>
+                        <div class="col-lg-5 pe-lg-0">
+                            <div class="resumen-total">
+                                <div class="d-flex justify-content-between small text-muted fw-semibold"><span>Productos</span><span id="resumen-subtotal">${{ total_carrito|floatformat:0 }}</span></div>
+                                <div class="d-flex justify-content-between small text-muted fw-semibold mb-2"><span>Envío</span><span id="resumen-costo-envio">$3.000</span></div>
+                                <div class="d-flex justify-content-between align-items-baseline border-top pt-2" style="border-color: var(--borde-suave) !important;">
+                                    <span class="fw-bold text-uppercase small">Total a pagar</span>
+                                    <span class="price fs-2 total-carrito-val" data-base-total="{{ total_carrito|floatformat:0 }}">${{ total_carrito|add:3000|floatformat:0 }}</span>
+                                </div>
+                                <button type="submit" class="btn btn-custom w-100 py-3 mt-3">Confirmar y Pagar Compra</button>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-custom btn-lg px-4">Confirmar y Pagar Compra</button>
                     </form>
                 {% else %}
-                    <div class="text-md-end">
-                        <p class="small text-muted mb-2 fw-semibold">Sus tortas están guardadas en el carrito. Inicie sesión o cree una cuenta para finalizar la compra:</p>
-                        <div class="d-flex flex-wrap gap-2 justify-content-md-end">
-                            <a href="{% url 'registro' %}?next=/carrito/" class="btn btn-outline-pastel">Crear Cuenta</a>
-                            <a href="{% url 'login' %}?next=/carrito/" class="btn btn-custom px-4">Iniciar Sesión para Comprar</a>
+                    <div class="row g-3 align-items-center m-0">
+                        <div class="col-md-6 ps-md-0">
+                            <span class="text-muted d-block small fw-bold text-uppercase">Total del pedido</span>
+                            <span class="price fs-2 total-carrito-val" data-base-total="{{ total_carrito|floatformat:0 }}">${{ total_carrito|add:3000|floatformat:0 }}</span>
+                            <small class="text-muted d-block" id="resumen-envio-carrito">Incluye $3.000 de despacho a domicilio.</small>
+                        </div>
+                        <div class="col-md-6 text-md-end pe-md-0">
+                            <p class="small text-muted mb-2 fw-semibold">Sus tortas están guardadas. Inicie sesión o cree una cuenta para finalizar la compra:</p>
+                            <div class="d-flex flex-wrap gap-2 justify-content-md-end">
+                                <a href="{% url 'registro' %}?next=/carrito/" class="btn btn-outline-pastel">Crear Cuenta</a>
+                                <a href="{% url 'login' %}?next=/carrito/" class="btn btn-custom px-4">Iniciar Sesión para Comprar</a>
+                            </div>
                         </div>
                     </div>
                 {% endif %}
@@ -133,7 +151,7 @@
             </div>
 
             {% if boletas_recientes %}
-                <div class="row g-4">
+                <div class="row g-4" data-paginar="4" data-paginar-etiqueta="compras">
                     {% for boleta in boletas_recientes %}
                         <div class="col-md-6">
                             <div class="card card-custom p-4 h-100">
@@ -168,22 +186,75 @@
 </div>
 
 <!-- Modal de Proceso y Confirmación de Compra -->
-<div class="modal fade" id="modalProcesandoCompra" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+<div class="modal fade modal-compra" id="modalProcesandoCompra" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content card-custom p-4 text-center" style="border-radius: 20px; border: 1px solid var(--borde-suave); background-color: #fffdfb;">
             <div class="modal-body py-3">
-                <!-- Estado 1: Procesando -->
+                <!-- Estado 1: Procesando — un pastelero arma la torta mientras se confirma la compra -->
                 <div id="compra-estado-procesando">
-                    <div class="spinner-border mb-3" role="status" style="width: 3.2rem; height: 3.2rem; color: var(--acento-botones);">
-                        <span class="visually-hidden">Procesando...</span>
+                    <div class="escena-pastelero" aria-hidden="true">
+                        <svg class="chef" viewBox="0 0 130 190">
+                            <ellipse cx="66" cy="184" rx="40" ry="5" fill="#563842" opacity=".1"/>
+                            <!-- piernas y zapatos -->
+                            <rect x="50" y="148" width="12" height="30" rx="4" fill="#6d5560"/>
+                            <rect x="70" y="148" width="12" height="30" rx="4" fill="#6d5560"/>
+                            <ellipse cx="54" cy="180" rx="10" ry="5" fill="#3e2c33"/>
+                            <ellipse cx="78" cy="180" rx="10" ry="5" fill="#3e2c33"/>
+                            <!-- chaqueta -->
+                            <path d="M36 152 Q34 104 66 94 Q98 104 96 152 Z" fill="#fffdfb" stroke="#ead8d4" stroke-width="2"/>
+                            <!-- delantal -->
+                            <path d="M48 116 L84 116 L90 152 L42 152 Z" fill="#f3a6b8"/>
+                            <path d="M48 116 L84 116" stroke="#d9829b" stroke-width="3"/>
+                            <rect x="58" y="128" width="16" height="10" rx="2" fill="#e88aa2"/>
+                            <circle cx="66" cy="104" r="2" fill="#d9829b"/><circle cx="66" cy="111" r="2" fill="#d9829b"/>
+                            <!-- pañuelo -->
+                            <path d="M56 92 L76 92 L66 104 Z" fill="#d9829b"/>
+                            <!-- brazo izquierdo -->
+                            <path d="M40 112 Q30 128 40 140" stroke="#fffdfb" stroke-width="11" stroke-linecap="round" fill="none"/>
+                            <path d="M40 112 Q30 128 40 140" stroke="#ead8d4" stroke-width="13" stroke-linecap="round" fill="none" opacity=".35"/>
+                            <circle cx="41" cy="142" r="6" fill="#f6cfb0"/>
+                            <!-- cabeza -->
+                            <circle cx="66" cy="68" r="21" fill="#f6cfb0"/>
+                            <circle cx="46" cy="70" r="4" fill="#f0bf9c"/><circle cx="86" cy="70" r="4" fill="#f0bf9c"/>
+                            <g class="chef-ojos">
+                                <circle cx="59" cy="66" r="2.4" fill="#563842"/>
+                                <circle cx="73" cy="66" r="2.4" fill="#563842"/>
+                            </g>
+                            <circle cx="54" cy="74" r="4" fill="#f3a6b8" opacity=".6"/>
+                            <circle cx="78" cy="74" r="4" fill="#f3a6b8" opacity=".6"/>
+                            <path d="M59 76 Q66 82 73 76" stroke="#563842" stroke-width="2" fill="none" stroke-linecap="round"/>
+                            <path d="M58 72 Q62 70 66 72 Q70 70 74 72" stroke="#8a5a48" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                            <!-- gorro de pastelero -->
+                            <path d="M38 44 Q30 20 50 18 Q56 2 72 10 Q90 2 94 20 Q110 24 98 46 Z" fill="#fffdfb" stroke="#ead8d4" stroke-width="2"/>
+                            <rect x="42" y="40" width="50" height="11" rx="3" fill="#fffdfb" stroke="#ead8d4" stroke-width="2"/>
+                            <!-- brazo derecho con manga pastelera (se mueve) -->
+                            <g class="chef-brazo">
+                                <path d="M92 110 Q108 104 116 94" stroke="#fffdfb" stroke-width="11" stroke-linecap="round" fill="none"/>
+                                <path d="M92 110 Q108 104 116 94" stroke="#ead8d4" stroke-width="13" stroke-linecap="round" fill="none" opacity=".35"/>
+                                <circle cx="117" cy="92" r="6" fill="#f6cfb0"/>
+                                <path d="M108 80 L126 82 L128 108 Z" fill="#fbe8ee" stroke="#d9829b" stroke-width="2" stroke-linejoin="round"/>
+                                <circle class="gota-crema" cx="128" cy="112" r="3" fill="#fffaf6" stroke="#f3d7d2"/>
+                            </g>
+                        </svg>
+                        <div class="torta-armando">
+                            <img src="{% static 'pasteleria/img/tortas/plato.svg' %}" alt="" class="ta-plato">
+                            <img src="{% static 'pasteleria/img/tortas/capa-chocolate.svg' %}" alt="" class="ta-capa" data-etapa="1" style="--n: 0;">
+                            <img src="{% static 'pasteleria/img/tortas/capa-frutilla.svg' %}" alt="" class="ta-capa" data-etapa="2" style="--n: 1;">
+                            <img src="{% static 'pasteleria/img/tortas/capa-vainilla.svg' %}" alt="" class="ta-capa" data-etapa="3" style="--n: 2;">
+                            <img src="{% static 'pasteleria/img/tortas/cubierta-frutillas.svg' %}" alt="" class="ta-capa ta-cubierta" data-etapa="4" style="--n: 3;">
+                            <span class="ta-brillo"></span>
+                        </div>
                     </div>
-                    <h4 class="fw-bold mb-2">Se está realizando su compra</h4>
-                    <p class="text-muted small mb-0">Validando disponibilidad y generando su boleta...</p>
+                    <h4 class="fw-bold mb-1" id="pastelero-titulo">Preparando su pedido</h4>
+                    <p class="text-muted small mb-3" id="pastelero-paso" aria-live="polite">Horneando el bizcocho…</p>
+                    <div class="progreso-pastelero" role="progressbar" aria-label="Avance de la compra" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="progreso-pastelero-barra" id="pastelero-barra"></div>
+                    </div>
                 </div>
 
                 <!-- Estado 2: Éxito -->
                 <div id="compra-estado-exito" class="d-none">
-                    <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style="width: 64px; height: 64px; background-color: var(--estados-positivos); color: var(--estados-positivos-texto); font-size: 2rem; font-weight: bold;">
+                    <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle exito-check" style="width: 64px; height: 64px; background-color: var(--estados-positivos); color: var(--estados-positivos-texto); font-size: 2rem; font-weight: bold;">
                         ✓
                     </div>
                     <h4 class="fw-bold mb-1" style="color: var(--texto-titulos);">¡Compra realizada con éxito!</h4>
@@ -192,6 +263,7 @@
                         <a href="{% url 'mis_boletas' %}" id="btn-ver-boleta" class="btn btn-custom px-4">Ver Boleta</a>
                         <a href="#" id="btn-descargar-boleta-pdf" class="btn btn-outline-pastel px-4">Descargar PDF</a>
                     </div>
+                    <button type="button" class="btn btn-link btn-sm mt-3 text-decoration-none" id="btn-seguir-comprando" style="color: var(--acento-hover);">Cerrar y seguir comprando</button>
                 </div>
 
                 <!-- Estado 3: Error -->
@@ -284,6 +356,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const esRetiro = selectEntregaCarrito && selectEntregaCarrito.value === 'Retiro';
         const envio = esRetiro ? 0 : 3000;
         totalElem.textContent = '$' + formatNumber(base + envio);
+        const subtotalResumen = document.getElementById('resumen-subtotal');
+        const envioResumen = document.getElementById('resumen-costo-envio');
+        if (subtotalResumen) subtotalResumen.textContent = '$' + formatNumber(base);
+        if (envioResumen) envioResumen.textContent = esRetiro ? 'Gratis' : '$3.000';
         if (resumenEnvio) {
             resumenEnvio.textContent = esRetiro
                 ? 'Retiro en Local seleccionado (sin costo de envío).'
@@ -295,10 +371,44 @@ document.addEventListener('DOMContentLoaded', function() {
         actualizarTotalConEnvio();
     }
 
-    // Confirmación de compra con ventana de "Se está realizando la compra" -> "Compra con éxito / Ver Boleta"
+    // ===== Confirmación de compra: un pastelero arma la torta mientras se procesa el pedido =====
+    // El avance depende de la respuesta real del servidor: si responde rápido, la torta se completa
+    // rápido; si tarda, el pastelero sigue trabajando. Además hay un tiempo mínimo que crece con la
+    // cantidad de tortas del pedido, para que la animación alcance a verse.
     const formCompra = document.getElementById('form-confirmar-compra');
     const modalEl = document.getElementById('modalProcesandoCompra');
     if (formCompra && modalEl) {
+        const ETAPAS = [
+            { desde: 0,  capa: 1, texto: 'Horneando el bizcocho…' },
+            { desde: 28, capa: 2, texto: 'Agregando el relleno…' },
+            { desde: 52, capa: 3, texto: 'Montando las capas…' },
+            { desde: 76, capa: 4, texto: 'Decorando con crema y frutillas…' },
+        ];
+        const barra = document.getElementById('pastelero-barra');
+        const textoPaso = document.getElementById('pastelero-paso');
+        const titulo = document.getElementById('pastelero-titulo');
+        const barraWrap = barra.parentElement;
+        const capas = modalEl.querySelectorAll('.ta-capa');
+        let compraExitosa = false;
+
+        function pintarProgreso(p) {
+            barra.style.width = p + '%';
+            barraWrap.setAttribute('aria-valuenow', Math.round(p));
+            let etapa = ETAPAS[0];
+            ETAPAS.forEach(e => { if (p >= e.desde) etapa = e; });
+            capas.forEach(c => c.classList.toggle('puesta', Number(c.dataset.etapa) <= etapa.capa));
+            if (p < 100 && textoPaso.textContent !== etapa.texto) textoPaso.textContent = etapa.texto;
+        }
+
+        function unidadesEnCarrito() {
+            let total = 0;
+            document.querySelectorAll('[class*="qty-text-"]').forEach(el => total += parseInt(el.textContent, 10) || 0);
+            return Math.max(1, total);
+        }
+
+        document.getElementById('btn-seguir-comprando').addEventListener('click', () => window.location.reload());
+        modalEl.addEventListener('hidden.bs.modal', () => { if (compraExitosa) window.location.reload(); });
+
         formCompra.addEventListener('submit', function(e) {
             e.preventDefault();
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -306,40 +416,74 @@ document.addEventListener('DOMContentLoaded', function() {
             const divExito = document.getElementById('compra-estado-exito');
             const divError = document.getElementById('compra-estado-error');
 
-            divProc.classList.remove('d-none');
+            divProc.classList.remove('d-none', 'terminado');
             divExito.classList.add('d-none');
             divError.classList.add('d-none');
+            titulo.textContent = 'Preparando su pedido';
+            pintarProgreso(0);
             modal.show();
+
+            const minimo = Math.min(4500, 1800 + unidadesEnCarrito() * 450);
+            const inicio = Date.now();
+            let respuesta = null;       // { ok, data } cuando llega
+            let progreso = 0;
+            let finalizando = false;
+
+            const reloj = setInterval(() => {
+                const t = Date.now() - inicio;
+                if (respuesta && !(respuesta.ok && respuesta.data.status === 'ok')) {
+                    clearInterval(reloj);   // error (ej: sin stock): se informa de inmediato
+                    mostrarResultado();
+                    return;
+                }
+                if (!respuesta || t < minimo) {
+                    // Mientras se espera: avanza hasta 90%; si el servidor tarda más, se acerca lento al 96%
+                    progreso = t <= minimo
+                        ? 90 * (t / minimo)
+                        : 90 + 6 * (1 - Math.exp(-(t - minimo) / 2500));
+                    pintarProgreso(progreso);
+                    return;
+                }
+                if (!finalizando) finalizando = true;
+                progreso = Math.min(100, progreso + 4);   // la respuesta llegó: terminar la torta
+                pintarProgreso(progreso);
+                if (progreso >= 100) {
+                    clearInterval(reloj);
+                    titulo.textContent = '¡Torta lista!';
+                    textoPaso.textContent = 'Su pedido quedó confirmado.';
+                    divProc.classList.add('terminado');
+                    setTimeout(mostrarResultado, 900);
+                }
+            }, 40);
+
+            function mostrarResultado() {
+                const { ok, data } = respuesta;
+                divProc.classList.add('d-none');
+                if (ok && data.status === 'ok') {
+                    compraExitosa = true;
+                    document.getElementById('compra-resumen-texto').innerHTML =
+                        `Se generó la <strong>Boleta N° ${data.numero_boleta}</strong> (${data.metodo_pago}).`;
+                    document.getElementById('btn-ver-boleta').href = data.url_mis_boletas;
+                    document.getElementById('btn-descargar-boleta-pdf').href = data.url_descargar_pdf;
+                    divExito.classList.remove('d-none');
+                    document.querySelectorAll('.cart-counter').forEach(el => el.textContent = '0');
+                } else {
+                    document.getElementById('compra-error-texto').textContent = data.message || 'No se pudo completar la compra.';
+                    divError.classList.remove('d-none');
+                }
+            }
 
             const formData = new FormData(formCompra);
             formData.append('ajax', '1');
-
-            const inicio = Date.now();
             fetch(formCompra.action, {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(res => res.json().then(data => ({ ok: res.ok, data })))
-            .then(({ ok, data }) => {
-                const transcurrido = Date.now() - inicio;
-                const espera = Math.max(0, 1100 - transcurrido);
-                setTimeout(() => {
-                    divProc.classList.add('d-none');
-                    if (ok && data.status === 'ok') {
-                        document.getElementById('compra-resumen-texto').innerHTML =
-                            `Se generó la <strong>Boleta N° ${data.numero_boleta}</strong> (${data.metodo_pago}).`;
-                        document.getElementById('btn-ver-boleta').href = data.url_mis_boletas;
-                        document.getElementById('btn-descargar-boleta-pdf').href = data.url_descargar_pdf;
-                        divExito.classList.remove('d-none');
-                        document.querySelectorAll('.cart-counter').forEach(el => el.textContent = '0');
-                    } else {
-                        document.getElementById('compra-error-texto').textContent = data.message || 'No se pudo completar la compra.';
-                        divError.classList.remove('d-none');
-                    }
-                }, espera);
-            })
+            .then(r => { respuesta = r; })
             .catch(() => {
+                clearInterval(reloj);
                 formCompra.submit();
             });
         });

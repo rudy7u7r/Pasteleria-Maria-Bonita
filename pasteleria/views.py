@@ -10,10 +10,16 @@ from django.db import transaction
 from django.db.models import Avg, Count, F, Q, Sum
 from django.utils import timezone
 from .pdf_utils import construir_pdf_boleta
+from .validadores import formatear_rut, normalizar_telefono, validar_rut
 from .models import (
+    ANTICIPACION_MINIMA_DIAS,
     Boleta,
     Cliente,
     COSTO_DESPACHO_DOMICILIO,
+    CUPO_DIARIO_TORTAS,
+    HORA_APERTURA,
+    HORA_CIERRE,
+    UMBRAL_STOCK_BAJO,
     DetalleBoleta,
     Mensaje,
     METODOS_PAGO_CHOICES,
@@ -187,7 +193,13 @@ def pedido_personalizado(request):
             dt_naive = datetime.strptime(f"{fecha_str} {hora_str}", "%Y-%m-%d %H:%M")
             fecha_entrega = timezone.make_aware(dt_naive) if timezone.is_naive(dt_naive) else dt_naive
         except ValueError:
-            fecha_entrega = timezone.now() + timezone.timedelta(days=2)
+            messages.error(request, "Debe indicar una fecha y hora de entrega válidas.")
+            return redirect('pedido_personalizado')
+
+        error_horario = PedidoPersonalizado(fecha_entrega=fecha_entrega).validar_horario_entrega()
+        if error_horario:
+            messages.error(request, error_horario)
+            return redirect('pedido_personalizado')
 
         tipos_entrega_validos = dict(TIPOS_ENTREGA_CHOICES).keys()
         tipo_entrega = request.POST.get('tipo_entrega', 'Domicilio').strip()
@@ -228,11 +240,16 @@ def pedido_personalizado(request):
         monto_abono = round(pedido.calcular_abono_25(precio_estimado))
         pedido.monto_abono = monto_abono
 
-        if not pedido.validar_limites_agenda():
-            messages.error(request, "No hay disponibilidad en la agenda para la fecha seleccionada.")
-            return redirect('pedido_personalizado')
-
-        pedido.save()
+        with transaction.atomic():
+            if not pedido.validar_limites_agenda():
+                fecha_txt = timezone.localtime(fecha_entrega).strftime('%d/%m/%Y')
+                messages.error(
+                    request,
+                    f"No quedan cupos para el {fecha_txt}: ya tenemos {CUPO_DIARIO_TORTAS} tortas agendadas ese día. "
+                    "Por favor elija otra fecha."
+                )
+                return redirect('pedido_personalizado')
+            pedido.save()
 
         pago = Pago.objects.create(
             pedido_personalizado=pedido,
@@ -248,8 +265,28 @@ def pedido_personalizado(request):
         )
         return redirect('historial_personalizados')
 
+    # Días (próximos 90) que ya completaron el cupo, para bloquearlos en el formulario
+    hoy = timezone.localdate()
+    conteo_por_dia = (
+        PedidoPersonalizado.objects
+        .exclude(estado='Cancelado')
+        .filter(fecha_entrega__date__gte=hoy, fecha_entrega__date__lte=hoy + timezone.timedelta(days=90))
+        .values('fecha_entrega__date')
+        .annotate(total=Count('id'))
+    )
+    fechas_sin_cupo = sorted(
+        c['fecha_entrega__date'].isoformat() for c in conteo_por_dia if c['total'] >= CUPO_DIARIO_TORTAS
+    )
+
     return render(request, "pasteleria/pedido_personalizado.html", {
         "cliente": cliente_actual,
+        "reglas_agenda": {
+            "cupo_diario": CUPO_DIARIO_TORTAS,
+            "anticipacion_dias": ANTICIPACION_MINIMA_DIAS,
+            "hora_apertura": HORA_APERTURA,
+            "hora_cierre": HORA_CIERRE,
+            "fechas_sin_cupo": fechas_sin_cupo,
+        },
     })
 
 
@@ -495,7 +532,11 @@ def perfil_cliente(request):
             cliente.apellido = apellido[:100]
             request.user.last_name = apellido[:150]
         if telefono:
-            cliente.telefono = telefono[:15]
+            telefono_ok = normalizar_telefono(telefono)
+            if not telefono_ok:
+                messages.error(request, f"El teléfono '{telefono}' no es válido. Use un número chileno de 9 dígitos, ej: +56 9 1234 5678.")
+                return redirect('perfil_cliente')
+            cliente.telefono = telefono_ok
         if direccion:
             cliente.direccion = direccion[:200]
 
@@ -504,8 +545,8 @@ def perfil_cliente(request):
             if not request.user.check_password(password_actual):
                 messages.error(request, "La contraseña actual es incorrecta.")
                 return redirect('perfil_cliente')
-            if len(password_nueva) < 4:
-                messages.error(request, "La nueva contraseña debe tener al menos 4 caracteres.")
+            if len(password_nueva) < 8:
+                messages.error(request, "La nueva contraseña debe tener al menos 8 caracteres.")
                 return redirect('perfil_cliente')
             if password_nueva != password_confirmar:
                 messages.error(request, "Las nuevas contraseñas no coinciden.")
@@ -707,7 +748,64 @@ def panel_pastelero(request):
         .order_by('-total_vendido')[:5]
     )
 
+    # --- Gráficos: ventas de las últimas 8 semanas (boletas + abonos) ---
+    hoy = timezone.localdate()
+    inicio_semana_actual = hoy - timezone.timedelta(days=hoy.weekday())
+    semanas = [inicio_semana_actual - timezone.timedelta(weeks=i) for i in range(7, -1, -1)]
+    ventas_boletas_sem = [0] * len(semanas)
+    ventas_abonos_sem = [0] * len(semanas)
+
+    def _indice_semana(dt):
+        dia = timezone.localtime(dt).date()
+        lunes = dia - timezone.timedelta(days=dia.weekday())
+        return semanas.index(lunes) if lunes in semanas else None
+
+    for b in boletas_activas:
+        idx = _indice_semana(b.fecha)
+        if idx is not None:
+            ventas_boletas_sem[idx] += round(float(b.total))
+    for p in pedidos_activos:
+        idx = _indice_semana(p.fecha_creacion)
+        if idx is not None:
+            ventas_abonos_sem[idx] += round(float(p.monto_abono))
+
+    # order_by() vacío: el orden por defecto de Resena (-fecha) rompería la agrupación
+    calificaciones = {
+        r['calificacion']: r['c']
+        for r in Resena.objects.order_by().values('calificacion').annotate(c=Count('id'))
+    }
+    promedio_resenas = Resena.objects.aggregate(prom=Avg('calificacion'))['prom']
+
+    datos_graficos = {
+        'semanas': [s.strftime('%d/%m') for s in semanas],
+        'ventas_boletas': ventas_boletas_sem,
+        'ventas_abonos': ventas_abonos_sem,
+        'top_nombres': [t['producto_nombre'] for t in top_productos],
+        'top_unidades': [t['total_vendido'] for t in top_productos],
+        'resenas_dist': [calificaciones.get(i, 0) for i in range(1, 6)],
+    }
+
+    # --- Calendario de entregas de tortas personalizadas ---
+    calendario_entregas = []
+    for p in pedidos_activos:
+        fl = timezone.localtime(p.fecha_entrega)
+        calendario_entregas.append({
+            'id': p.id,
+            'fecha': fl.date().isoformat(),
+            'hora': fl.strftime('%H:%M'),
+            'cliente': p.cliente.nombre if p.cliente else 'Cliente',
+            'bizcocho': p.tipo_bizcocho,
+            'estado': p.estado,
+            'estado_label': p.get_estado_display(),
+            'entrega': p.get_tipo_entrega_display(),
+        })
+
+    # --- Alerta de stock bajo ---
+    productos_stock_bajo = Producto.objects.filter(stock__lte=UMBRAL_STOCK_BAJO).order_by('stock', 'nombre')
+
     resumen_ventas = {
+        'promedio_resenas': round(promedio_resenas, 1) if promedio_resenas else None,
+        'total_resenas': sum(calificaciones.values()),
         'total_boletas': round(total_boletas),
         'total_abonos': round(total_abonos),
         'total_ingresos': round(total_ingresos),
@@ -726,6 +824,11 @@ def panel_pastelero(request):
         "clientes_list": clientes_list,
         "staff_rol": staff_rol,
         "resumen_ventas": resumen_ventas,
+        "datos_graficos": datos_graficos,
+        "calendario_entregas": calendario_entregas,
+        "cupo_diario": CUPO_DIARIO_TORTAS,
+        "productos_stock_bajo": productos_stock_bajo,
+        "umbral_stock_bajo": UMBRAL_STOCK_BAJO,
     })
 
 
@@ -871,6 +974,18 @@ def crear_personal(request):
         nombre = request.POST.get('nombre', '').strip()
         telefono = request.POST.get('telefono', '').strip()
         rol = request.POST.get('rol', 'Pastelero').strip()
+
+        if rut and not validar_rut(rut):
+            messages.error(request, f"El RUT '{rut}' no es válido. Revise el número y el dígito verificador.")
+            return redirect('/panel-pastelero/#pills-equipo')
+        if rut:
+            rut = formatear_rut(rut)
+        if telefono:
+            telefono_ok = normalizar_telefono(telefono)
+            if not telefono_ok:
+                messages.error(request, f"El teléfono '{telefono}' no es válido. Use un número chileno de 9 dígitos.")
+                return redirect('/panel-pastelero/#pills-equipo')
+            telefono = telefono_ok
 
         if rut and nombre:
             if Personal.objects.filter(rut__iexact=rut).exists():
@@ -1045,11 +1160,25 @@ def registrar_usuario(request):
         elif User.objects.filter(email__iexact=email).exists() or Cliente.objects.filter(email__iexact=email).exists():
             errores.append(f"El correo '{email}' ya se encuentra registrado.")
 
-        if rut and Cliente.objects.filter(rut__iexact=rut).exists():
-            errores.append(f"El RUT '{rut}' ya se encuentra registrado.")
+        if rut:
+            if not validar_rut(rut):
+                errores.append(f"El RUT '{rut}' no es válido. Revise el número y el dígito verificador.")
+            else:
+                rut = formatear_rut(rut)
+                valores['rut'] = rut
+                if Cliente.objects.filter(rut__iexact=rut).exists():
+                    errores.append(f"El RUT '{rut}' ya se encuentra registrado.")
 
-        if not password1 or len(password1) < 4:
-            errores.append("La contraseña debe tener al menos 4 caracteres.")
+        if telefono:
+            telefono_ok = normalizar_telefono(telefono)
+            if not telefono_ok:
+                errores.append(f"El teléfono '{telefono}' no es válido. Use un número chileno de 9 dígitos, ej: +56 9 1234 5678.")
+            else:
+                telefono = telefono_ok
+                valores['telefono'] = telefono
+
+        if not password1 or len(password1) < 8:
+            errores.append("La contraseña debe tener al menos 8 caracteres.")
         elif password1 != password2:
             errores.append("Las contraseñas ingresadas no coinciden.")
 

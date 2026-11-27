@@ -2,6 +2,10 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
+import datetime as _dt
+
+from django.core import mail
+from django.utils import timezone
 from .models import (
     Boleta,
     Cliente,
@@ -13,6 +17,11 @@ from .models import (
     Producto,
     VentaStock,
 )
+
+
+def fecha_futura(dias=10):
+    """Fecha de entrega válida relativa a hoy (respeta la anticipación mínima)."""
+    return (timezone.localdate() + _dt.timedelta(days=dias)).isoformat()
 
 
 class PasteleriaFlujoTests(TestCase):
@@ -53,16 +62,16 @@ class PasteleriaFlujoTests(TestCase):
             'email': 'maria@ejemplo.com',
             'nombre': 'María',
             'apellido': 'Pérez',
-            'rut': '18.123.456-7',
+            'rut': '18.123.456-3',
             'telefono': '+56987654321',
             'direccion': 'Av. Dulce 123',
-            'password1': '1234',
-            'password2': '1234',
+            'password1': 'clave1234',
+            'password2': 'clave1234',
             'next': '/carrito/',
         })
         self.assertRedirects(resp_reg, '/carrito/')
         self.assertEqual(User.objects.filter(username='maria_bonita').count(), 1)
-        cliente = Cliente.objects.get(rut='18.123.456-7')
+        cliente = Cliente.objects.get(rut='18.123.456-3')
 
         resp_cat = self.client.get(reverse('catalogo'))
         self.assertContains(resp_cat, "Torta Personalizada")
@@ -81,7 +90,7 @@ class PasteleriaFlujoTests(TestCase):
             'relleno': 'Frambuesa y Manjar',
             'cobertura': 'Buttercream Pastel',
             'notas': 'Feliz Cumpleaños Sofía',
-            'fecha_entrega': '2026-12-15',
+            'fecha_entrega': fecha_futura(),
             'hora_entrega': '17:30',
             'precio_estimado': '35000',
         })
@@ -98,7 +107,7 @@ class PasteleriaFlujoTests(TestCase):
 
     def test_flujo_estados_boleta_y_confirmacion_cliente(self):
         cliente = Cliente.objects.create(
-            rut="12.345.678-9",
+            rut="12.345.678-5",
             nombre="Carlos",
             apellido="Reyes",
             email="carlos@ejemplo.com",
@@ -140,7 +149,7 @@ class PasteleriaFlujoTests(TestCase):
 
     def test_flujo_estados_pedido_personalizado_y_chat(self):
         cliente = Cliente.objects.create(
-            rut="11.222.333-4",
+            rut="11.222.333-9",
             nombre="Ana",
             apellido="Gómez",
             email="ana@ejemplo.com",
@@ -213,7 +222,7 @@ class PasteleriaFlujoTests(TestCase):
 
     def test_ajax_chat_mensajes_tiempo_real(self):
         cliente = Cliente.objects.create(
-            rut="15.999.888-7",
+            rut="15.999.888-6",
             nombre="Lucas",
             apellido="Valdés",
             email="lucas@test.com",
@@ -278,7 +287,7 @@ class PasteleriaFlujoTests(TestCase):
 
     def test_perfil_cliente_actualiza_datos_y_direccion(self):
         cliente = Cliente.objects.create(
-            rut="19.111.222-3",
+            rut="19.111.222-9",
             nombre="Sofía",
             apellido="Martínez",
             email="sofia@test.com",
@@ -297,7 +306,7 @@ class PasteleriaFlujoTests(TestCase):
         self.assertRedirects(resp, reverse('perfil_cliente'))
         cliente.refresh_from_db()
         self.assertEqual(cliente.nombre, 'Sofía Elena')
-        self.assertEqual(cliente.telefono, '+56988776655')
+        self.assertEqual(cliente.telefono, '+56 9 8877 6655')
         self.assertEqual(cliente.direccion, 'Av. Nueva Providencia 2020')
 
     def test_descarga_boletas_pdf(self):
@@ -305,7 +314,7 @@ class PasteleriaFlujoTests(TestCase):
         import datetime
 
         cliente = Cliente.objects.create(
-            rut="16.555.444-3",
+            rut="16.555.444-2",
             nombre="Camila",
             apellido="Rojas",
             email="camila@test.com",
@@ -395,7 +404,7 @@ class PasteleriaFlujoTests(TestCase):
 
     def test_metodo_pago_en_compra_y_boleta(self):
         cliente = Cliente.objects.create(
-            rut="14.222.333-5",
+            rut="14.222.333-3",
             nombre="Valentina",
             apellido="Cruz",
             email="val@test.com",
@@ -420,7 +429,7 @@ class PasteleriaFlujoTests(TestCase):
             'relleno': 'Manjar',
             'cobertura': 'Chantilly',
             'notas': 'Con flores',
-            'fecha_entrega': '2026-12-20',
+            'fecha_entrega': fecha_futura(),
             'hora_entrega': '15:00',
             'precio_estimado': '25000',
             'metodo_pago': 'Credito',
@@ -434,11 +443,11 @@ class PasteleriaFlujoTests(TestCase):
             'email': 'ajax@test.cl',
             'nombre': 'Comprador',
             'apellido': 'Ajax',
-            'rut': '19.111.222-3',
+            'rut': '19.111.222-9',
             'telefono': '+56911111111',
             'direccion': 'Av. Test 123',
-            'password1': 'pw1234',
-            'password2': 'pw1234',
+            'password1': 'pw123456',
+            'password2': 'pw123456',
         })
         self.client.post(reverse('comprar_producto', args=[self.producto.id]))
 
@@ -463,13 +472,13 @@ class PasteleriaFlujoTests(TestCase):
             'email': 'cancel@test.cl',
             'nombre': 'Lucía',
             'apellido': 'Gómez',
-            'rut': '17.222.333-4',
+            'rut': '17.222.333-8',
             'telefono': '+56922222222',
             'direccion': 'Pasaje Los Pinos 45',
-            'password1': 'pw1234',
-            'password2': 'pw1234',
+            'password1': 'pw123456',
+            'password2': 'pw123456',
         })
-        cliente = Cliente.objects.get(rut='17.222.333-4')
+        cliente = Cliente.objects.get(rut='17.222.333-8')
         self.client.post(reverse('comprar_producto', args=[self.producto.id]))
         self.client.post(reverse('procesar_compra'), {'metodo_pago': 'Debito'})
         boleta = Boleta.objects.get(cliente=cliente)
@@ -479,7 +488,7 @@ class PasteleriaFlujoTests(TestCase):
             'relleno': 'Frambuesa',
             'cobertura': 'Ganache',
             'notas': 'Sin nueces',
-            'fecha_entrega': '2026-12-22',
+            'fecha_entrega': fecha_futura(),
             'hora_entrega': '16:00',
             'precio_estimado': '28000',
             'metodo_pago': 'Transferencia',
@@ -532,7 +541,7 @@ class PasteleriaFlujoTests(TestCase):
         self.assertEqual(pedido.motivo_cancelacion, motivo_pedido)
 
         # El cliente ve el aviso de reembolso y el motivo en ambas vistas
-        self.client.login(username='cliente_cancel', password='pw1234')
+        self.client.login(username='cliente_cancel', password='pw123456')
         resp_mis_boletas = self.client.get(reverse('mis_boletas'))
         self.assertContains(resp_mis_boletas, 'Se realizará reembolso')
         self.assertContains(resp_mis_boletas, motivo_boleta)
@@ -566,13 +575,13 @@ class PasteleriaFlujoTests(TestCase):
             'email': 'full@test.cl',
             'nombre': 'Camila',
             'apellido': 'Díaz',
-            'rut': '16.555.666-7',
+            'rut': '16.555.666-6',
             'telefono': '+56933333333',
             'direccion': 'Av. Flores 789',
-            'password1': 'pw1234',
-            'password2': 'pw1234',
+            'password1': 'pw123456',
+            'password2': 'pw123456',
         })
-        cliente = Cliente.objects.get(rut='16.555.666-7')
+        cliente = Cliente.objects.get(rut='16.555.666-6')
 
         # Compra 2 unidades de self.producto (stock inicial 5 -> queda en 3)
         self.client.post(reverse('comprar_producto', args=[self.producto.id]))
@@ -594,7 +603,7 @@ class PasteleriaFlujoTests(TestCase):
             'email': 'camila_nueva@test.cl',
             'telefono': '+56944444444',
             'direccion': 'Calle Nueva 101',
-            'password_actual': 'pw1234',
+            'password_actual': 'pw123456',
             'password_nueva': 'nueva1234',
             'password_confirmar': 'nueva1234',
         })
@@ -645,13 +654,13 @@ class PasteleriaFlujoTests(TestCase):
             'email': 'retiro@test.cl',
             'nombre': 'Sofía',
             'apellido': 'Mora',
-            'rut': '15.444.555-6',
+            'rut': '15.444.555-2',
             'telefono': '+56955555555',
             'direccion': 'Av. Central 500',
-            'password1': 'pw1234',
-            'password2': 'pw1234',
+            'password1': 'pw123456',
+            'password2': 'pw123456',
         })
-        cliente = Cliente.objects.get(rut='15.444.555-6')
+        cliente = Cliente.objects.get(rut='15.444.555-2')
 
         # Compra con Retiro en Local (envío $0)
         self.client.post(reverse('comprar_producto', args=[self.producto.id]))
@@ -677,7 +686,7 @@ class PasteleriaFlujoTests(TestCase):
             'relleno': 'Manjar',
             'cobertura': 'Chantilly',
             'notas': 'Con flores',
-            'fecha_entrega': '2026-12-28',
+            'fecha_entrega': fecha_futura(),
             'hora_entrega': '16:00',
             'precio_estimado': '25000',
             'metodo_pago': 'Transferencia',
@@ -707,3 +716,133 @@ class PasteleriaFlujoTests(TestCase):
         )
         self.assertEqual(resp_ajax_estado.status_code, 200)
         self.assertEqual(resp_ajax_estado.json().get('nuevo_estado'), 'En_Preparacion')
+
+
+class ValidacionRutYFechaTests(TestCase):
+    def test_validar_rut_modulo_11(self):
+        from .validadores import validar_rut, formatear_rut
+        self.assertTrue(validar_rut('12.345.678-5'))
+        self.assertTrue(validar_rut('123456785'))
+        self.assertTrue(validar_rut('10.000.013-k'))
+        self.assertFalse(validar_rut('12.345.678-9'))
+        self.assertFalse(validar_rut('abc'))
+        self.assertFalse(validar_rut(''))
+        self.assertEqual(formatear_rut('123456785'), '12.345.678-5')
+
+    def test_registro_rechaza_rut_invalido(self):
+        resp = self.client.post(reverse('registro'), {
+            'username': 'rut_malo', 'email': 'rutmalo@test.cl', 'rut': '12.345.678-9',
+            'password1': 'pass1234', 'password2': 'pass1234',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(User.objects.filter(username='rut_malo').exists())
+
+    def test_registro_normaliza_rut_valido(self):
+        self.client.post(reverse('registro'), {
+            'username': 'rut_bueno', 'email': 'rutbueno@test.cl', 'rut': '123456785',
+            'password1': 'pass1234', 'password2': 'pass1234',
+        })
+        self.assertTrue(Cliente.objects.filter(rut='12.345.678-5').exists())
+
+    def test_pedido_personalizado_rechaza_fecha_pasada(self):
+        User.objects.create_user('fecha_user', 'fecha@test.cl', 'pass1234')
+        self.client.login(username='fecha_user', password='pass1234')
+        resp = self.client.post(reverse('pedido_personalizado'), {
+            'bizcocho': 'Chocolate', 'relleno': 'Manjar', 'cobertura': 'Merengue',
+            'fecha_entrega': '2020-01-01', 'hora_entrega': '16:00',
+            'precio_estimado': '25000', 'metodo_pago': 'Debito', 'tipo_entrega': 'Retiro',
+        })
+        self.assertRedirects(resp, reverse('pedido_personalizado'))
+        self.assertEqual(PedidoPersonalizado.objects.count(), 0)
+
+
+class AgendaYCuentaTests(TestCase):
+    def setUp(self):
+        User.objects.create_user('agenda_user', 'agenda@test.cl', 'pass1234')
+        self.client.login(username='agenda_user', password='pass1234')
+
+    def _pedir(self, fecha, hora='16:00'):
+        return self.client.post(reverse('pedido_personalizado'), {
+            'bizcocho': 'Chocolate', 'relleno': 'Manjar', 'cobertura': 'Merengue',
+            'fecha_entrega': fecha, 'hora_entrega': hora,
+            'precio_estimado': '25000', 'metodo_pago': 'Debito', 'tipo_entrega': 'Retiro',
+        })
+
+    def test_rechaza_pedido_sin_anticipacion_minima(self):
+        self._pedir(fecha_futura(1))  # mañana: menos de 2 días
+        self.assertEqual(PedidoPersonalizado.objects.count(), 0)
+        self._pedir(fecha_futura(2))  # pasado mañana: permitido
+        self.assertEqual(PedidoPersonalizado.objects.count(), 1)
+
+    def test_rechaza_hora_fuera_de_horario(self):
+        self._pedir(fecha_futura(), '08:30')
+        self._pedir(fecha_futura(), '21:00')
+        self.assertEqual(PedidoPersonalizado.objects.count(), 0)
+        self._pedir(fecha_futura(), '19:00')
+        self.assertEqual(PedidoPersonalizado.objects.count(), 1)
+
+    def test_cupo_diario_maximo(self):
+        from .models import CUPO_DIARIO_TORTAS
+        fecha = fecha_futura(5)
+        for _ in range(CUPO_DIARIO_TORTAS + 1):
+            self._pedir(fecha)
+        self.assertEqual(PedidoPersonalizado.objects.count(), CUPO_DIARIO_TORTAS)
+        # Un pedido cancelado libera el cupo
+        PedidoPersonalizado.objects.filter(id=PedidoPersonalizado.objects.first().id).update(estado='Cancelado')
+        self._pedir(fecha)
+        self.assertEqual(PedidoPersonalizado.objects.exclude(estado='Cancelado').count(), CUPO_DIARIO_TORTAS)
+
+    def test_formulario_informa_fechas_sin_cupo(self):
+        from .models import CUPO_DIARIO_TORTAS
+        fecha = fecha_futura(6)
+        for _ in range(CUPO_DIARIO_TORTAS):
+            self._pedir(fecha)
+        resp = self.client.get(reverse('pedido_personalizado'))
+        self.assertIn(fecha, resp.context['reglas_agenda']['fechas_sin_cupo'])
+
+    def test_recuperar_contrasena_por_correo(self):
+        self.client.logout()
+        resp = self.client.post(reverse('password_reset'), {'email': 'agenda@test.cl'})
+        self.assertRedirects(resp, reverse('password_reset_done'))
+        self.assertEqual(len(mail.outbox), 1)
+        cuerpo = mail.outbox[0].body
+        enlace = [l for l in cuerpo.splitlines() if '/recuperar-contrasena/' in l][0].strip()
+        ruta = enlace.split('testserver', 1)[1]
+        resp = self.client.get(ruta, follow=True)
+        url_form = resp.redirect_chain[-1][0]
+        # Contraseña corta: se rechaza
+        resp = self.client.post(url_form, {'new_password1': 'corta', 'new_password2': 'corta'})
+        self.assertEqual(resp.status_code, 200)
+        resp = self.client.post(url_form, {'new_password1': 'nuevaClave99', 'new_password2': 'nuevaClave99'})
+        self.assertRedirects(resp, reverse('password_reset_complete'))
+        self.assertTrue(self.client.login(username='agenda_user', password='nuevaClave99'))
+
+    def test_telefono_chileno(self):
+        from .validadores import normalizar_telefono
+        self.assertEqual(normalizar_telefono('912345678'), '+56 9 1234 5678')
+        self.assertEqual(normalizar_telefono('+56 9 1234 5678'), '+56 9 1234 5678')
+        self.assertEqual(normalizar_telefono('56912345678'), '+56 9 1234 5678')
+        self.assertEqual(normalizar_telefono('221234567'), '+56 2 2123 4567')
+        self.assertIsNone(normalizar_telefono('12345'))
+        self.assertIsNone(normalizar_telefono('012345678'))
+
+    def test_registro_rechaza_telefono_invalido(self):
+        self.client.logout()
+        resp = self.client.post(reverse('registro'), {
+            'username': 'tel_malo', 'email': 'telmalo@test.cl', 'telefono': '1234',
+            'password1': 'pass1234', 'password2': 'pass1234',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(User.objects.filter(username='tel_malo').exists())
+
+    def test_panel_muestra_stock_bajo_calendario_y_graficos(self):
+        Producto.objects.create(nombre='Kuchen Escaso', descripcion='x', precio_final=1000, stock=1)
+        self._pedir(fecha_futura())
+        admin = User.objects.create_superuser('admin_panel', 'adminp@test.cl', 'pass1234')
+        self.client.force_login(admin)
+        resp = self.client.get(reverse('panel_pastelero'))
+        self.assertContains(resp, 'Kuchen Escaso')
+        self.assertContains(resp, 'id="datos-calendario"')
+        self.assertContains(resp, 'id="grafico-ventas-semanas"')
+        self.assertEqual(len(resp.context['calendario_entregas']), 1)
+        self.assertEqual(len(resp.context['datos_graficos']['semanas']), 8)

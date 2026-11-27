@@ -1,7 +1,29 @@
-from django.urls import path
+from django.contrib.auth import views as auth_views
+from django.urls import path, reverse_lazy
 from . import views
+from .forms import NuevaPasswordForm, RecuperarPasswordForm
 
 urlpatterns = [
+    # Recuperación de contraseña por correo
+    path('recuperar-contrasena/', auth_views.PasswordResetView.as_view(
+        template_name='pasteleria/password_reset_form.html',
+        email_template_name='pasteleria/emails/password_reset_email.txt',
+        subject_template_name='pasteleria/emails/password_reset_subject.txt',
+        form_class=RecuperarPasswordForm,
+        success_url=reverse_lazy('password_reset_done'),
+    ), name='password_reset'),
+    path('recuperar-contrasena/enviado/', auth_views.PasswordResetDoneView.as_view(
+        template_name='pasteleria/password_reset_done.html',
+    ), name='password_reset_done'),
+    path('recuperar-contrasena/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
+        template_name='pasteleria/password_reset_confirm.html',
+        form_class=NuevaPasswordForm,
+        success_url=reverse_lazy('password_reset_complete'),
+    ), name='password_reset_confirm'),
+    path('recuperar-contrasena/listo/', auth_views.PasswordResetCompleteView.as_view(
+        template_name='pasteleria/password_reset_complete.html',
+    ), name='password_reset_complete'),
+
     # Páginas principales y catálogo
     path('', views.catalogo, name='catalogo'),
     path('producto/<int:id>/', views.detalle_producto, name='detalle_producto'),

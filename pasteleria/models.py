@@ -105,6 +105,13 @@ class VentaStock(models.Model):
 
 COSTO_DESPACHO_DOMICILIO = 3000
 
+# --- Reglas de agenda para tortas personalizadas ---
+CUPO_DIARIO_TORTAS = 5          # Máximo de tortas personalizadas que se entregan por día
+ANTICIPACION_MINIMA_DIAS = 2    # La entrega debe ser al menos 2 días después de hoy (ej: pedido lunes -> desde miércoles)
+HORA_APERTURA = 10              # Horario de entrega: desde las 10:00
+HORA_CIERRE = 19                # ...hasta las 19:00 (inclusive)
+UMBRAL_STOCK_BAJO = 2           # Productos con este stock o menos se consideran en alerta
+
 TIPOS_ENTREGA_CHOICES = [
     ('Domicilio', 'Despacho a Domicilio'),
     ('Retiro', 'Retiro en Local'),
@@ -167,8 +174,41 @@ class PedidoPersonalizado(models.Model):
         self.monto_abono = precio_total * self.PORCENTAJE_ABONO
         return self.monto_abono
 
+    @classmethod
+    def pedidos_del_dia(cls, fecha):
+        """Pedidos no cancelados cuya entrega cae en la fecha (día local) indicada."""
+        return cls.objects.filter(fecha_entrega__date=fecha).exclude(estado='Cancelado')
+
+    @classmethod
+    def cupos_disponibles(cls, fecha, excluir_id=None):
+        qs = cls.pedidos_del_dia(fecha)
+        if excluir_id:
+            qs = qs.exclude(id=excluir_id)
+        return max(0, CUPO_DIARIO_TORTAS - qs.count())
+
+    def validar_horario_entrega(self):
+        """Retorna un mensaje de error si la fecha/hora no cumple las reglas, o None si es válida."""
+        from django.utils import timezone
+        ahora = timezone.now()
+        entrega_local = timezone.localtime(self.fecha_entrega)
+
+        if self.fecha_entrega <= ahora:
+            return "La fecha de entrega no puede ser en el pasado. Seleccione una fecha y hora futuras."
+        primer_dia = timezone.localdate() + timezone.timedelta(days=ANTICIPACION_MINIMA_DIAS)
+        if entrega_local.date() < primer_dia:
+            return (f"Las tortas personalizadas se deben pedir con al menos {ANTICIPACION_MINIMA_DIAS} días "
+                    f"de anticipación. La primera fecha disponible es el {primer_dia.strftime('%d/%m/%Y')}.")
+        minutos = entrega_local.hour * 60 + entrega_local.minute
+        if minutos < HORA_APERTURA * 60 or minutos > HORA_CIERRE * 60:
+            return (f"El horario de entrega es de {HORA_APERTURA:02d}:00 a {HORA_CIERRE:02d}:00 hrs. "
+                    f"Seleccione una hora dentro de ese rango.")
+        return None
+
     def validar_limites_agenda(self):
-        return True
+        """True si aún quedan cupos de producción para el día de entrega."""
+        from django.utils import timezone
+        dia = timezone.localtime(self.fecha_entrega).date()
+        return self.cupos_disponibles(dia, excluir_id=self.pk) > 0
 
     def __str__(self):
         return f"Pedido Personalizado #{self.id} - {self.tipo_bizcocho}"
